@@ -1,6 +1,6 @@
 /*
  * tusb_config.h - the TinyUSB settings: the PicoCalc shows up on the PC as a USB
- * network adapter (CDC NCM) and nothing else.
+ * network adapter (RNDIS for Windows, CDC ECM for the others) and nothing else.
  *
  * Author: Thomas Dzubin
  */
@@ -30,14 +30,8 @@ extern "C" {
 #define CFG_TUD_MIDI                0
 #define CFG_TUD_VENDOR              0
 
-#define CFG_TUD_ECM_RNDIS           0
-#define CFG_TUD_NCM                 1
-
-/* One network transfer block each way, big enough for two full frames. */
-#define CFG_TUD_NCM_IN_NTB_MAX_SIZE   (2 * 1460 + 100)
-#define CFG_TUD_NCM_OUT_NTB_MAX_SIZE  (2 * 1460 + 100)
-#define CFG_TUD_NCM_OUT_NTB_N       1
-#define CFG_TUD_NCM_IN_NTB_N        1
+#define CFG_TUD_ECM_RNDIS           1
+#define CFG_TUD_NCM                 0
 
 #ifdef __cplusplus
 }

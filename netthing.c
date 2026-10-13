@@ -423,6 +423,7 @@ static int usb_connect(void)
     static const char *const lines[] = USBSCREEN_LINES;
     unsigned i;
     int last = -1;
+    char text[TCOLS + 1], shown[TCOLS + 1] = "";
 
     if (!leave_current_link())
         return MODE_NONE;
@@ -449,6 +450,12 @@ static int usb_connect(void)
         if (now_state == USBNET_UP) {
             screen_clear();
             return MODE_LAN;
+        }
+        usbnet_debug_text(text, sizeof text);
+        if (strcmp(text, shown) != 0) {
+            snprintf(shown, sizeof shown, "%s", text);
+            clear_row(USBSCREEN_ROW_DEBUG);
+            put_row(USBSCREEN_ROW_DEBUG, text, COL_CYAN);
         }
         if (now_state != last) {
             last = now_state;

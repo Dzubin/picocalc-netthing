@@ -73,6 +73,7 @@ add_executable(picocalc-netthing
     srvtools.c
     usbnet.c
     usbnet_desc.c
+    ${PICO_TINYUSB_PATH}/lib/networking/rndis_reports.c
     lanscan.c
     portlist.c
     pemselect.c
@@ -125,6 +126,7 @@ set_source_files_properties(${PICO_SDK_PATH}/src/rp2_common/pico_lwip/altcp_tls_
 target_include_directories(picocalc-netthing PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${STARTER}/drivers
+    ${PICO_TINYUSB_PATH}/lib/networking
 )
 
 target_link_libraries(picocalc-netthing

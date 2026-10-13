@@ -20,7 +20,8 @@
 #define USBNET_LINK          2      /* the PC has it; waiting for an address from its DHCP server */
 #define USBNET_UP            3      /* has an IPv4 address: usable */
 
-#define USBNET_TICK_MS       500    /* how often the state is looked at */
+#define USBNET_TICK_MS       500    /* how often the state is looked at once the link is up */
+#define USBNET_FAST_TICK_MS  20     /* ... and until then (it also runs the USB tasks) */
 #define USBNET_DHCP_RETRY_MS 8000   /* a DHCP search that has found nobody is started again after this */
 #define USBNET_MTU           1500
 

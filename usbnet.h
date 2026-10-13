@@ -1,6 +1,6 @@
 /*
  * usbnet.h - IP over USB: the PicoCalc's USB port shows up on a PC as a network
- * adapter (CDC NCM). The PC shares its internet connection with that adapter
+ * adapter (RNDIS for Windows, ECM for the others). The PC shares its internet connection with that adapter
  * (Internet Connection Sharing on Windows), its DHCP server gives the PicoCalc
  * an address, and the PicoCalc's network tools then run over that link. The
  * firmware implementation is usbnet.c (TinyUSB and lwIP); netthing.c and link.c
@@ -25,6 +25,9 @@ void usbnet_stop(void);
 
 /* USBNET_OFF, USBNET_WAITING, USBNET_LINK or USBNET_UP. */
 int  usbnet_state(void);
+
+/* A line of text on what the USB side has seen (events, bus reset, set up by the PC), for the connect screen. */
+void usbnet_debug_text(char *out, unsigned size);
 
 /* The addresses of the link, in the same record as a Wi-Fi connection (the name
  * is "USB" and the signal 0). Returns false unless the state is USBNET_UP. */

@@ -390,7 +390,7 @@ The top line of every screen says how it is connected.
 
 - **Wi-Fi:** `Enter` on a network in the Wi-Fi scan. Done and working.
 - **IP over USB (new, written but not yet tried on real hardware):** press `U` on the title screen. The PicoCalc's USB port then shows up on a
-  PC as a network adapter (CDC NCM; Windows 10 and 11 load their own driver for it, and Linux and macOS do too). Plug the PicoCalc into the
+  PC as a network adapter (RNDIS, which Windows loads its own driver for; Linux also takes it, and macOS gets CDC ECM instead). Plug the PicoCalc into the
   PC with a USB data cable, and share the PC's internet connection with the new adapter; on Windows: Settings, Network & Internet, Advanced
   network settings, More network adapter options, right-click the adapter that has the internet (Wi-Fi or Ethernet), Properties, Sharing,
   tick *Allow other network users to connect*, and choose the new adapter (its name is *Ethernet* and a number; unplug and plug the PicoCalc
@@ -493,7 +493,7 @@ which comes with the SDK in `lib/btstack` and is not part of this project. Its l
 products (Pico W, Pico 2 W) under the terms in the SDK's `src/rp2_common/pico_btstack/LICENSE.RP` and `lib/btstack/LICENSE` (read them,
 they limit use to those products and to non-commercial use); this project is for the Pico 2 W and is free.
 The USB network adapter uses **TinyUSB** (by Ha Thach, MIT licence), which also comes with the SDK, and `usbnet_desc.c` is adapted from its
-`net_lwip_webserver` example (its licence text is at the top of that file).
+`net_lwip_webserver` example (its licence text is at the top of that file); `rndis_reports.c` from its `lib/networking` is built in too.
 
 The vendored copy is unchanged except for these fixes, all in `drivers/`:
 

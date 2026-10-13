@@ -10,6 +10,7 @@
  *
  * Author: Thomas Dzubin
  */
+#include <stdio.h>
 #include <string.h>
 
 #include "pico/cyw43_arch.h"
@@ -33,6 +34,7 @@ static struct netif usb_netif;
 static bool started, netif_added, dhcp_running, tick_added;
 static volatile int state = USBNET_OFF;
 static uint32_t dhcp_started_ms;
+static volatile uint32_t event_count;      /* USB events TinyUSB has queued (for the status text) */
 static async_when_pending_worker_t usb_worker;
 static async_at_time_worker_t      tick_worker;
 
@@ -60,14 +62,19 @@ bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
 {
     struct pbuf *p;
 
-    if (!netif_added || !netif_is_up(&usb_netif) || size == 0)
+    if (!netif_added || !netif_is_up(&usb_netif) || size == 0) {
+        tud_network_recv_renew();
         return true;
+    }
     p = pbuf_alloc(PBUF_RAW, size, PBUF_POOL);
-    if (p == NULL)
+    if (p == NULL) {
+        tud_network_recv_renew();
         return true;                    /* no buffer: the frame is dropped */
+    }
     pbuf_take(p, src, size);
     if (usb_netif.input(p, &usb_netif) != ERR_OK)
         pbuf_free(p);
+    tud_network_recv_renew();           /* the frame is copied: the USB side may take the next one */
     return true;
 }
 
@@ -154,9 +161,10 @@ static void usb_do_work(async_context_t *context, async_when_pending_worker_t *w
 
 static void tick_do_work(async_context_t *context, async_at_time_worker_t *worker)
 {
+    tud_task();                         /* in case an event came before the worker was ready */
     update_state();
     if (started)
-        async_context_add_at_time_worker_in_ms(context, worker, USBNET_TICK_MS);
+        async_context_add_at_time_worker_in_ms(context, worker, state == USBNET_UP ? USBNET_TICK_MS : USBNET_FAST_TICK_MS);
 }
 
 /* TinyUSB calls this (also from its interrupt) when an event is queued. */
@@ -165,6 +173,7 @@ void tud_event_hook_cb(uint8_t rhport, uint32_t eventid, bool in_isr)
     (void)rhport;
     (void)eventid;
     (void)in_isr;
+    event_count++;
     if (started)
         async_context_set_work_pending(cyw43_arch_async_context(), &usb_worker);
 }
@@ -179,10 +188,18 @@ int usbnet_start(void)
         return 0;
     make_mac();
     cyw43_arch_lwip_begin();
+    /* The workers go in first: TinyUSB lets the PC start enumerating inside tusb_init(). */
+    usb_worker.do_work = usb_do_work;
+    async_context_add_when_pending_worker(context, &usb_worker);
+    started = true;
+    state = USBNET_WAITING;
     if (!tusb_inited()) {
         tusb_rhport_init_t init = { .role = TUSB_ROLE_DEVICE, .speed = TUSB_SPEED_AUTO };
 
         if (!tusb_init(0, &init)) {
+            started = false;
+            state = USBNET_OFF;
+            async_context_remove_when_pending_worker(context, &usb_worker);
             cyw43_arch_lwip_end();
             return 1;
         }
@@ -196,16 +213,13 @@ int usbnet_start(void)
         netif_added = true;
     }
     netif_set_up(&usb_netif);
-    usb_worker.do_work = usb_do_work;
-    async_context_add_when_pending_worker(context, &usb_worker);
-    started = true;
-    state = USBNET_WAITING;
     tud_connect();
+    async_context_set_work_pending(context, &usb_worker);
     if (!tick_added) {
         tick_worker.do_work = tick_do_work;
         tick_added = true;
     }
-    async_context_add_at_time_worker_in_ms(context, &tick_worker, USBNET_TICK_MS);
+    async_context_add_at_time_worker_in_ms(context, &tick_worker, USBNET_FAST_TICK_MS);
     cyw43_arch_lwip_end();
     return 0;
 }
@@ -235,6 +249,12 @@ void usbnet_stop(void)
 int usbnet_state(void)
 {
     return state;
+}
+
+void usbnet_debug_text(char *out, unsigned size)
+{
+    snprintf(out, size, "EVENTS %lu  BUS %s  PC %s", (unsigned long)event_count, tud_connected() ? "YES" : "NO",
+             tud_mounted() ? "READY" : "NO");
 }
 
 bool usbnet_info(wifi_info_t *info)
