@@ -389,14 +389,55 @@ tools it must be connected to a network, by **one** of these ways at a time; con
 The top line of every screen says how it is connected.
 
 - **Wi-Fi:** `Enter` on a network in the Wi-Fi scan. Done and working.
-- **IP over USB (new; tried on Windows with Internet Connection Sharing, the other systems are untried):** press `U` on the title screen. The PicoCalc's USB port then shows up on a
-  PC as a network adapter (RNDIS, which Windows loads its own driver for; Linux also takes it, and macOS gets CDC ECM instead). Plug the PicoCalc into the
-  PC with a USB data cable, and share the PC's internet connection with the new adapter; on Windows: Settings, Network & Internet, Advanced
-  network settings, More network adapter options, right-click the adapter that has the internet (Wi-Fi or Ethernet), Properties, Sharing,
-  tick *Allow other network users to connect*, and choose the new adapter (its name is *Ethernet* and a number; unplug and plug the PicoCalc
-  to see which one appears). Windows then gives the adapter 192.168.137.1 and its DHCP server gives the PicoCalc an address; the top line
-  of the screen shows `USB 192.168.137.x` and the LAN tools open. `ESC` while it waits cancels. The PC's firewall may block pings to it.
-  USB networking uses the wireless chip's driver for the network stack, so it needs a Pico W or Pico 2 W like everything else.
+- **IP over USB (new; tried on Windows with Internet Connection Sharing, the other systems are untried):** the PicoCalc's USB port shows up on a
+  PC as a network adapter (RNDIS, which Windows loads its own driver for; Linux also takes it, and macOS gets CDC ECM instead). The PC shares
+  its internet connection with that adapter and gives the PicoCalc an address (DHCP). USB networking uses the wireless chip's driver for the
+  network stack, so it needs a Pico W or Pico 2 W like everything else. The top line of the screen shows `USB 192.168.137.x` when it works.
+  The PC's firewall may block pings to it.
+
+  **Windows 10 and 11, step by step**
+
+  1. Plug the PicoCalc into the PC with a USB **data** cable (the one you flash with), and start the program.
+  2. On the title screen press `U`. The PicoCalc shows `WAITING FOR THE PC TO SET IT UP`.
+  3. Windows installs the adapter by itself. In Device Manager (right-click Start, Device Manager) it appears under Network adapters as
+     **Remote NDIS Compatible Device**, with no warning icon. If it shows an error instead, unplug the cable, uninstall the device (right-click,
+     Uninstall device, tick *Delete the driver software*), plug in again and press `U` again.
+  4. Open the list of network adapters: press Win+R, type `ncpa.cpl` and press Enter (or, in Windows 11, Settings, Network & internet,
+     Advanced network settings, More network adapter options). A new adapter, named *Ethernet* and a number, has appeared. If you are unsure
+     which one it is, unplug and plug the PicoCalc and see which one comes and goes.
+  5. Right-click the adapter that has the **internet** (your Wi-Fi or your Ethernet, not the new one) and choose Properties.
+  6. Open the **Sharing** tab. It only exists when the PC has a second adapter, which is why the PicoCalc must be plugged in and started first.
+  7. Tick *Allow other network users to connect through this computer's Internet connection*. In the *Home networking connection* list choose
+     the new adapter, then OK. Answer Yes if Windows warns that the adapter's address will change.
+  8. Windows gives its side of the new adapter the address 192.168.137.1 and starts a DHCP server on it. Within a few seconds the PicoCalc shows
+     `WAITING FOR AN ADDRESS (DHCP)` and then opens the LAN tools, with `USB 192.168.137.x` on the top line.
+
+  If the PicoCalc stays at the DHCP message, turn the sharing off and on again (untick, OK, tick, OK), or unplug and plug the PicoCalc.
+  Windows keeps the sharing setting, so the next time only steps 1 and 2 are needed, unless Windows names the adapter differently.
+  `ESC` on the waiting screen cancels and switches the adapter off.
+
+  **Linux, the BSDs and macOS (not tried by the author; this is where to start)**
+
+  The program offers the PC two USB configurations, so any system that has a driver for RNDIS or for CDC ECM (Ethernet gadget) will show the
+  PicoCalc as a network interface. What is then needed is what Windows does with Internet Connection Sharing: give the interface an address,
+  run a DHCP server on it, and forward and translate (NAT) its traffic to the internet connection.
+
+  - **Linux with NetworkManager:** the interface appears (a name like `enx...` or `usb0`; `ip link` lists it). Make a connection for it with the
+    method *Shared to other computers*, which starts a DHCP server and NAT by itself (it uses 10.42.0.x):
+    `nmcli connection add type ethernet ifname enx0123456789ab con-name picocalc ipv4.method shared`, then
+    `nmcli connection up picocalc`. In the desktop settings it is the same choice under the interface's IPv4 settings.
+  - **Linux without it:** give the interface an address (`ip addr add 192.168.137.1/24 dev usb0`), turn on forwarding
+    (`sysctl -w net.ipv4.ip_forward=1`), add a masquerade rule for the network (`nft` or `iptables -t nat -A POSTROUTING -s 192.168.137.0/24
+    -o wlan0 -j MASQUERADE`, with your internet interface in place of `wlan0`) and run a DHCP server on the interface, for example
+    `dnsmasq --interface=usb0 --bind-interfaces --dhcp-range=192.168.137.10,192.168.137.50,12h`.
+  - **FreeBSD, OpenBSD, NetBSD:** the RNDIS driver is `urndis` (FreeBSD: `if_urndis`) and the CDC Ethernet one is `cdce`; the interface appears
+    under one of those names. Give it an address with `ifconfig`, turn on forwarding (`sysctl net.inet.ip.forwarding=1` on OpenBSD,
+    `gateway_enable="YES"` in rc.conf on FreeBSD), add a `nat` rule in pf for the 192.168.137.0 network on your internet interface, and run a
+    DHCP server (`dhcpd` or `dnsmasq`) on it.
+  - **macOS:** it needs the ECM configuration, which the PicoCalc offers second; if the interface does not appear, the PicoCalc may not be
+    selected. If it does appear, System Settings, General, Sharing, Internet Sharing shares the internet with it.
+
+  Tell the author if one of these works or needs a change in the program (for example a different USB configuration order).
 - **Bluetooth tethering (in progress, not working yet):** the Bluetooth scan already lists the Classic phones around (the Classic area); `Enter`
   on one is meant to connect to its shared connection (the PAN profile) and for now only says so. The code in `tether.c` is the start of it.
 
