@@ -6,46 +6,39 @@ the version here matches the `VERSION` define in `netthing_const.h`.
 
 ## [Unreleased]
 
-### Changed
-- Three modes after the title screen: Wi-Fi scan, Bluetooth scan and LAN tools. `ESC` in a mode goes to the title screen (the connection stays
-  up) and a key there goes on in that mode. The LAN tools menu has `W=WIFI` and `B=BLUETOOTH`; the speed test is now `E` and the clock `K`.
-- `P=PAUSE` is on a line of its own on both scan screens. A paused scan starts again when you come back from another screen (the Wi-Fi
-  scan stays paused while a connection is up).
-- The separate full-screen Classic list (`C`) is gone. The Classic area of the Bluetooth screen scrolls through every Classic device heard
-  in the last minute (`CLASSIC  1-4 OF 17`). The old Find and Read list screens are gone too: `F` and `I` act on the device under the cursor.
-- The Wi-Fi scan heading reads `WIFI SCAN`, the Bluetooth one `BT SCAN`. The help lines of both scan screens start with `P=PAUSE` and
-  write each key as `KEY=WHAT`.
-- The Pico W (RP2040) build leaves out the Windows test server tools: 6.5 KB of program space and 5.8 KB of RAM saved.
-- The link line is the top row of every screen; headings that were there moved down one row.
-- `B` goes straight to the nearby devices list (no Bluetooth menu). The other Bluetooth tools are keys on it: `F` find, `I` read, `C`
-  Classic list, `T` tracker alert, `X` crowding report, `P` pause, `R` empty the list, `W` or `ESC` back.
+## [V1.10A]
 
 ### Added
-- The Pico W (RP2040) build leaves out Bluetooth tethering (11 KB of RAM and 17 KB of program space saved); `CHIP_BT_TETHER` in `chip_limits.h`.
-- Leaving a network is done politely: a DHCP release and a proper disassociation (Wi-Fi), a closed adapter (USB) or a closed BNEP link (Bluetooth),
-  with `DISCONNECTING...` shown meanwhile. This also happens on `~` (BOOTSEL) and when leaving for the loader.
-- Bluetooth tethering (tried with a phone, works): `Enter` on a Classic phone in the Bluetooth scan pairs (a code to confirm), opens a
-  PAN (BNEP) link and gets an address by DHCP; the LAN tools then run over it, and `BT <phone> <address>` is on the top line. The radio stays on
-  while the link is up.
-- The saved Wi-Fi networks (green and yellow names) and the paired Bluetooth Classic devices (green) are kept at the top of their lists.
-- IP over USB (works with Windows Internet Connection Sharing): `U` on the title screen makes the PicoCalc a USB network adapter (RNDIS for Windows, ECM for the others) that
-  gets its address from the PC's shared connection (Internet Connection Sharing). The top line shows `USB <address>` and the LAN tools run over it.
-  The link layer (`link.c`) gives the tools the addresses of whichever link is up, and a second connection asks to give up the first.
-- `L` opens the LAN tools menu from the Wi-Fi scan list and the Bluetooth screen when a link is up, and says so when none is. A new
-  connection first asks to give up the one that is up (one way to the LAN at a time).
-- On the nearby devices list `Enter` is the connect key and `D` the details; the cursor goes on from the Low Energy list into the Classic
-  rows. Connecting by Bluetooth is not built yet.
-- A line under the heading of every screen (row 1) says how the PicoCalc reaches the LAN: `WI-FI name  -52 DBM`, or `NOT CONNECTED`.
-  The continuous ping host name and the first hop of the trace route chart moved down one row to leave it free. The scan screen opens paused while a link is up, so a scan
-  does not disturb the connection; `P` starts it.
-- On the Wi-Fi scan list `Enter` connects and `D` shows the details (it was the other way round). Connecting while a link is up asks
-  first. The splash has a `U` key for IP over USB, which is not built yet.
-- The Wi-Fi scan screen scans over and over by itself: each scan updates the list (an access point not heard for three scans drops off),
-  the marker stays on the chosen access point, `P` pauses, `R` empties the list and starts again.
-- The nearby devices list has a Classic area at the bottom: after four 5 second Low Energy windows the scan stops for one Classic inquiry.
-- Saved networks now keep the BSSID of the access points joined (up to four per network). In the scan list a name is green when a saved
-  network has both its name and its BSSID, yellow when only one of them is saved. Joining a saved network adds the BSSID. The saved file
-  is now version 2 (`NTW2`); the old kind is still read.
+- **Three ways to reach the LAN**, one at a time (connecting a second way first asks to give up the first):
+  - Wi-Fi, as before;
+  - **IP over USB**: `U` on the title screen makes the PicoCalc a USB network adapter (RNDIS for Windows, ECM for the others) that gets its
+    address from the PC's shared connection (Internet Connection Sharing on Windows). Tried on Windows 11; Linux, the BSDs and macOS are
+    untried (the README has pointers);
+  - **Bluetooth tethering** (Pico 2 W only): `Enter` on a Classic phone in the Bluetooth scan pairs (a code to confirm), opens a PAN (BNEP)
+    link and gets an address by DHCP. The radio stays on while the link is up.
+- **A link line on the top row of every screen**: `NOT CONNECTED`, `WI-FI name -52 DBM`, `USB 192.168.137.2` or `BT phone 192.168.44.x`.
+  Ping, DNS, health check and the other tools use whichever link is up.
+- **Three modes** after the title screen: Wi-Fi scan, Bluetooth scan and LAN tools. `L` opens the LAN tools from either scan screen (or says
+  `NOT CONNECTED`), `B` and `W` move between the modes, `ESC` goes to the title screen without dropping the connection and a key there carries on
+  in the mode that was left.
+- **The Wi-Fi scan scans over and over by itself**, merging each scan into the list (an access point not heard for three scans drops off), with the
+  marker staying on the chosen access point. `P=PAUSE` pauses; the scan stays paused while a connection is up, because a scan can disturb it.
+- **The Bluetooth scan is one screen**: the Low Energy list, and below it a Classic area (a Classic inquiry after every four 5-second Low Energy
+  windows) that scrolls through every Classic device heard (`CLASSIC  1-4 OF 17`). `F` finds and `I` reads the chosen device, `T` is the tracker
+  alert, `X` the crowding report. The old Bluetooth menu and separate Classic list are gone.
+- **Saved networks keep the BSSID** of each access point joined (up to four per network; file version `NTW2`, the old kind is still read). In
+  the Wi-Fi scan a name is green when a saved network has both its name and BSSID, yellow when only one of them is saved. Saved networks, and
+  Classic devices paired with the PicoCalc (green), are kept at the top of their lists.
+- **Leaving a network politely**: a DHCP release and a proper disassociation (Wi-Fi), a closed adapter (USB) or a closed BNEP link (Bluetooth),
+  with `DISCONNECTING...` shown meanwhile, also on `~` (BOOTSEL) and when leaving for the loader.
+
+### Changed
+- On the Wi-Fi scan `Enter` connects and `D` shows the details (it was the other way round); help lines read `KEY=WHAT`.
+- LAN tools menu: the speed test is now `E` and the clock `K`; `W` and `B` go to the Wi-Fi and Bluetooth scans.
+- Headings that were on the top row moved down one row. The continuous ping host and the first hop of the trace route chart moved too.
+- Pico W (RP2040) build: no Windows test server tools and no Bluetooth tethering, and the certificate tool copies files in 512 byte pieces, to
+  fit in its RAM (about 243 KB of 264 KB is used). This build is still not tried on real hardware.
+- Windows test server version V1.10A (no changes in the server itself).
 
 ## [V1.01A]
 

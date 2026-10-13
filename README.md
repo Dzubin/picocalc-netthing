@@ -5,33 +5,32 @@
 Author: Thomas Dzubin    License: MIT    Version: see `VERSION` in
 [`netthing_const.h`](netthing_const.h)
 
-Wireless networking for the ClockworkPi **PicoCalc** with a **Raspberry Pi Pico 2 W**
-(RP2350 and the CYW43 Wi-Fi chip). It lists the access points in range with
-their signal strength, connects to one (the password is kept on the SD card in a scrambled form),
-and is a Wi-Fi and network test and troubleshooting tool for finding out why a connection is slow or down. It runs on
-a **Pico 2 W** (RP2350) and, with some smaller limits, on the older **Pico W** (RP2040); there is no Windows or Linux
+A wireless scanning and network troubleshooting tool for the ClockworkPi **PicoCalc** with a **Raspberry Pi Pico 2 W** (RP2350 and the
+CYW43 wireless chip). It scans for Wi-Fi networks and Bluetooth devices, and connects to the LAN by Wi-Fi, by Bluetooth tethering to a
+phone, or by IP over USB to a PC, and then has a set of tools for finding out why a connection is slow or down. It runs on a
+**Pico 2 W** (RP2350) and, with some smaller limits, on the older **Pico W** (RP2040); there is no Windows or Linux
 build, because the program needs the wireless chip.
 
 ## What it does
 
-After a splash screen the program scans and lists the access points in range with their signal strength, channel and
-security type, and shows the details of the one you choose. You can join a network (typing its password, or using the one
-saved on the SD card), see the address the access point gave the PicoCalc, and keep a list of saved networks.
+After the title screen the program is always in one of three **modes**, and the top line of every screen says how it is connected
+(`NOT CONNECTED`, `WI-FI name -52 DBM`, `USB 192.168.137.2` or `BT phone 192.168.44.x`):
 
-Once connected, the **status screen** shows the addresses, a live signal strength and a strip of the signal over the last few
-minutes. From there `T` opens the **Wi-Fi tools menu**, `L` the **LAN tools menu** and `B` the **Bluetooth menu**.
+- the **Wi-Fi scan**: it scans over and over by itself and lists the access points in range with signal strength, channel and security.
+  Networks you saved are kept at the top (green when the name and the access point's address are both saved, yellow when only one of them is).
+  `Enter` connects (the password is kept on the SD card in a scrambled form), `D` shows the details;
+- the **Bluetooth scan**: the Low Energy devices around, with a Classic area below for phones and other Classic devices. `Enter` on a phone
+  tethers to it (see "Reaching the LAN"). The Bluetooth tools (find one device by its signal, read what a device says about itself, a
+  tracker alert and a 2.4 GHz crowding report) are keys on this screen;
+- the **LAN tools**, once connected by any of the three ways: health check, ping, ping the router, continuous ping with a graph and a
+  log file, trace route, a DNS checker, name lookup, a speed test, a web page check (the status code a server answers with, not the page),
+  setting the clock from an NTP time server, an update of the https certificates, a scan of the local network with a map of its devices, a
+  port check, and, in a menu of their own because most people will not have the server, the tools for the Windows test server.
 
-The **Wi-Fi tools** are about the radio: a signal meter and a channel survey, for finding the best spot and the quietest
-channel, and the health check ("is it working?" with traffic lights and a plain sentence), which is in the LAN tools menu too.
-
-The **LAN tools** are for the network behind the radio: the health check, ping, ping the router, continuous ping with a graph and a log
-file, trace route, a DNS checker, name lookup, a speed test, a web page check (the status code a server answers with, not the page),
-setting the clock from an NTP time server, an update of the https certificates from inside the program, a scan of the local network
-with a map of its devices, a port check, and, in a menu of their own because most people who run the program will not have the
-server, the tools for the Windows test server (download and upload speed to it, a latency test, and a talk with it).
-
-The **Bluetooth tools** (the Pico 2 W's chip does Bluetooth too): a scan of the devices around, finding one by its signal, reading
-  what a device says about itself, a tracker alert and a 2.4 GHz crowding report.
+`L` opens the LAN tools from either scan screen, `B` and `W` move between the scans, and `ESC` goes back to the title screen without dropping
+the connection; any key there carries on in the mode you left. Only one connection is used at a time. From the Wi-Fi scan the **status
+screen** (`I`) shows the addresses, a live signal strength and a strip of the signal over the last few minutes, and `T` there opens the
+**Wi-Fi tools**: a signal meter, a channel survey (for finding the best spot and the quietest channel) and the health check.
 
 Most tools draw a picture as well as the text (see "Pictures" below).
 
@@ -382,14 +381,14 @@ no connection any more). Going to the title screen does not drop the connection,
 the title screen leaves the program. A scan that was paused starts again when you come back to it from another screen, except that
 the Wi-Fi scan stays paused while a connection is up.
 
-## Reaching the LAN: Wi-Fi, USB and Bluetooth (work in progress)
+## Reaching the LAN: Wi-Fi, USB and Bluetooth
 
 The program is first of all a wireless scanning tool (the Wi-Fi scan and the Bluetooth scan work without any connection). To use the LAN
 tools it must be connected to a network, by **one** of these ways at a time; connecting a second way asks first to give up the one that is up.
 The top line of every screen says how it is connected.
 
 - **Wi-Fi:** `Enter` on a network in the Wi-Fi scan. Done and working.
-- **IP over USB (new; tried on Windows with Internet Connection Sharing, the other systems are untried):** the PicoCalc's USB port shows up on a
+- **IP over USB (tried on Windows with Internet Connection Sharing; the other systems are untried):** the PicoCalc's USB port shows up on a
   PC as a network adapter (RNDIS, which Windows loads its own driver for; Linux also takes it, and macOS gets CDC ECM instead). The PC shares
   its internet connection with that adapter and gives the PicoCalc an address (DHCP). USB networking uses the wireless chip's driver for the
   network stack, so it needs a Pico W or Pico 2 W like everything else. The top line of the screen shows `USB 192.168.137.x` when it works.
@@ -438,7 +437,7 @@ The top line of every screen says how it is connected.
     selected. If it does appear, System Settings, General, Sharing, Internet Sharing shares the internet with it.
 
   Tell the author if one of these works or needs a change in the program (for example a different USB configuration order).
-- **Bluetooth tethering (works with the phone it was tried on; Pico 2 W only, not in the Pico W build):** the PicoCalc joins the phone's shared connection as a
+- **Bluetooth tethering (Pico 2 W only; it is not in the Pico W build):** the PicoCalc joins the phone's shared connection as a
   Bluetooth PAN user (BNEP), gets an address from the phone and runs the LAN tools over it. Steps:
 
   1. On the phone switch Bluetooth on and **Bluetooth tethering** on (Android: Settings, Network & internet, Hotspot & tethering,

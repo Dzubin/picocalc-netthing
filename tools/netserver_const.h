@@ -7,7 +7,7 @@
 #ifndef NETSERVER_CONST_H
 #define NETSERVER_CONST_H
 
-#define SERVER_VERSION      "V1.01A"
+#define SERVER_VERSION      "V1.10A"
 #define SERVER_PORT         7000        /* the default; a port number on the command line replaces it */
 #define SERVER_BACKLOG      4
 #define SERVER_LINE_MAX     512         /* the most of a request line that is kept */

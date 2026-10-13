@@ -12,7 +12,7 @@
 
 /* Shown on the splash screen; the firmware build reads it from this line, so
  * keep it in the form  #define VERSION "V0.01A"  on one line. */
-#define VERSION "V1.01A"
+#define VERSION "V1.10A"
 
 /* ------------------------------------------------------------------ */
 /*  Colours (full-strength only: dim greys are hard to read on the LCD) */
