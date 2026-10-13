@@ -62,20 +62,23 @@ bool link_info_get(wifi_info_t *info)
 
 void link_drop(void)
 {
-    switch (link_kind()) {
-    case LINK_WIFI:
+    bool wifi = wifi_connected();
+    bool usb = usbnet_state() != USBNET_OFF;
+    bool bt = btpan_state() != BTPAN_IDLE;
+
+    if (!wifi && !usb && !bt)
+        return;
+    /* each link says goodbye properly (address released, access point or phone told); it takes a moment */
+    put_row(LINK_DROP_ROW, LINK_DROP_TEXT, COL_YELLOW);
+    if (wifi)
         wifi_disconnect();
-        break;
-    case LINK_USB:
+    if (usb)
         usbnet_stop();
-        break;
-    case LINK_BLUETOOTH:
+    if (bt) {
         btpan_stop();
         bt_power_off();         /* the Bluetooth screen is not open when another link is made */
-        break;
-    default:
-        break;
     }
+    clear_row(LINK_DROP_ROW);
 }
 
 void link_draw(void)

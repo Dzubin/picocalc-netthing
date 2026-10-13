@@ -454,6 +454,13 @@ The top line of every screen says how it is connected.
 
   While the link is up the Bluetooth radio stays on, also when you leave the Bluetooth scan.
 
+### Leaving a connection politely
+
+Whenever a connection is given up (`D` on the status screen, connecting another way, leaving the program, or `~` for BOOTSEL), the PicoCalc
+cleans up first and shows `DISCONNECTING...` for a moment (a second or less): it sends a DHCP release so the router or PC can reuse the address,
+and tells the access point (Wi-Fi), the PC (USB) or the phone (Bluetooth) that it is leaving, instead of just vanishing. The message goes away
+when it is done.
+
 ## Saved networks
 
 In the Wi-Fi scan list the saved networks (green and yellow names) are always kept at the top, so the one to reconnect to does not move about.

@@ -961,7 +961,8 @@ static void status_screen(void)
             return;
         if (key == 'd' || key == 'D') {
             if (confirm(CONFIRM_DISCONNECT, info.ssid)) {
-                wifi_disconnect();
+                screen_clear();
+                link_drop();
                 return;
             }
             draw_status_frame();

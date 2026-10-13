@@ -17,6 +17,7 @@
 #include "pico/cyw43_arch.h"
 #include "lwip/netif.h"
 #include "lwip/dns.h"
+#include "lwip/dhcp.h"
 #include "lwip/ip4_addr.h"
 #include "lwip/ip6_addr.h"
 #include "lwip/netif.h"
@@ -264,8 +265,20 @@ bool wifi_connected(void)
 
 void wifi_disconnect(void)
 {
-    if (radio_up)
+    if (radio_up) {
+        bool was_up = wifi_link_state() == WIFI_LINK_UP;
+
+        if (was_up) {
+            /* tell the DHCP server the address is free, then leave properly (the access point is told too) */
+            cyw43_arch_lwip_begin();
+            dhcp_release_and_stop(&cyw43_state.netif[CYW43_ITF_STA]);
+            cyw43_arch_lwip_end();
+            sleep_ms(WIFI_RELEASE_MS);
+        }
         cyw43_wifi_leave(&cyw43_state, CYW43_ITF_STA);
+        if (was_up)
+            sleep_ms(WIFI_LEAVE_MS);
+    }
     joining = false;
 }
 

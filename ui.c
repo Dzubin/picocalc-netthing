@@ -75,6 +75,7 @@ static inline bool is_mod_key(uint8_t code)
 /* reboot into BOOTSEL (USB drive) mode; does not return */
 void go_bootsel(void)
 {
+    link_drop();                /* leave the network properly before the reset */
     put_row(BOOTSEL_NOTICE_ROW, "REBOOTING TO BOOTSEL...", COL_YELLOW);
     plat_sleep_ms(REBOOT_MS);
     plat_bootsel();
@@ -83,6 +84,7 @@ void go_bootsel(void)
 /* leave for the UF2 Loader menu (ESC or Q on the splash); does not return */
 void go_loader(void)
 {
+    link_drop();
     put_row(SPLASH_ROW_EXIT, "BACK TO THE LOADER...", COL_YELLOW);
     plat_sleep_ms(REBOOT_MS);
     plat_exit_to_loader();

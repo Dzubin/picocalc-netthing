@@ -25,6 +25,7 @@
 #include "btpan.h"
 
 static volatile int state = BTPAN_IDLE;
+static volatile bool bnep_open;                 /* the BNEP link is open */
 static const char *message = "";
 static bd_addr_t remote;
 static char remote_name[BTPAN_NAME_MAX + 1];
@@ -165,6 +166,7 @@ static void bnep_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet,
             set_state(BTPAN_FAILED, BTPAN_MSG_NO_LINK);
             break;
         }
+        bnep_open = true;
         bt_keep_on(true);                       /* the radio stays on while the link is up */
         dhcp_begin(bnep_lwip_get_interface());
         set_state(BTPAN_DHCP, BTPAN_MSG_DHCP);
@@ -174,6 +176,7 @@ static void bnep_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet,
             set_state(BTPAN_FAILED, BTPAN_MSG_NO_LINK);
         break;
     case BNEP_EVENT_CHANNEL_CLOSED:
+        bnep_open = false;
         dhcp_stop(bnep_lwip_get_interface());
         netif_set_default(&cyw43_state.netif[CYW43_ITF_STA]);
         bt_keep_on(false);
@@ -251,11 +254,24 @@ int btpan_start(const uint8_t address[6], const char *name)
 
 void btpan_stop(void)
 {
+    uint32_t started = now_ms();
+
+    if (state == BTPAN_UP) {
+        /* tell the phone's DHCP server the address is free, and give the message time to go */
+        cyw43_arch_lwip_begin();
+        dhcp_release_and_stop(bnep_lwip_get_interface());
+        cyw43_arch_lwip_end();
+        sleep_ms(BTPAN_RELEASE_MS);
+    }
     cyw43_arch_lwip_begin();
     if (state == BTPAN_CONNECT || state == BTPAN_DHCP || state == BTPAN_UP) {
         bnep_disconnect(remote);
         dhcp_stop(bnep_lwip_get_interface());
     }
+    cyw43_arch_lwip_end();
+    while (bnep_open && now_ms() - started < BTPAN_CLOSE_MS)      /* let the link close properly */
+        sleep_ms(20);
+    cyw43_arch_lwip_begin();
     pairing_pending = false;
     netif_set_default(&cyw43_state.netif[CYW43_ITF_STA]);
     state = BTPAN_IDLE;

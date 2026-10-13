@@ -8,6 +8,8 @@
 
 #define WIFI_COUNTRY       CYW43_COUNTRY_CANADA   /* sets the legal 2.4 GHz channels */
 #define WIFI_AP_MAX        64                     /* access points kept */
+#define WIFI_RELEASE_MS    200                    /* time for the DHCP release to go out before leaving the network */
+#define WIFI_LEAVE_MS      300                    /* ... and for the disassociation */
 #define WIFI_AP_KEEP_SCANS  3                     /* a scan that continues an earlier one drops access points not heard for this many scans */
 
 /* Authentication methods to try, in order, for a WPA2 network: WPA2 or WPA2/WPA first, then

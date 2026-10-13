@@ -19,6 +19,8 @@
 #define BTPAN_CONNECT_MS   60000    /* the link did not open (time to answer a pairing question) */
 #define BTPAN_DHCP_MS      25000    /* no address came */
 #define BTPAN_NAME_MAX     24
+#define BTPAN_RELEASE_MS   200      /* time for the DHCP release to reach the phone before the link closes */
+#define BTPAN_CLOSE_MS     1500     /* the longest wait for the link to close */
 #define BTPAN_ATTR_MAX     256      /* the longest SDP attribute that is read */
 
 #define BTPAN_MSG_QUERY    "ASKING THE PHONE FOR ITS NETWORK"

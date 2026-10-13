@@ -23,6 +23,7 @@
 #define USBNET_TICK_MS       500    /* how often the state is looked at once the link is up */
 #define USBNET_FAST_TICK_MS  20     /* ... and until then (it also runs the USB tasks) */
 #define USBNET_DHCP_RETRY_MS 8000   /* a DHCP search that has found nobody is started again after this */
+#define USBNET_RELEASE_MS    200    /* time for the DHCP release to reach the PC before the adapter goes */
 #define USBNET_MTU           1500
 
 #endif /* USBNET_CONST_H */

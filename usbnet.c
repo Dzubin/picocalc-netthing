@@ -230,6 +230,14 @@ void usbnet_stop(void)
 
     if (!started)
         return;
+    if (dhcp_running && dhcp_supplied_address(&usb_netif)) {
+        /* tell the PC's DHCP server the address is free, and give the message time to go */
+        cyw43_arch_lwip_begin();
+        dhcp_release_and_stop(&usb_netif);
+        dhcp_running = false;
+        cyw43_arch_lwip_end();
+        sleep_ms(USBNET_RELEASE_MS);
+    }
     cyw43_arch_lwip_begin();
     started = false;
     tud_disconnect();

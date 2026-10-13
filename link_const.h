@@ -16,6 +16,8 @@
 #define LINK_USB            3       /* IP over USB (not built yet) */
 
 #define LINK_TEXT_NONE      "NOT CONNECTED"
+#define LINK_DROP_ROW       16      /* the line shown while a link is being closed down */
+#define LINK_DROP_TEXT      "DISCONNECTING..."
 #define LINK_NEEDED         "NOT CONNECTED: CONNECT FIRST"   /* L with no link up */
 #define LINK_NAME_WIDTH     22      /* longest network name shown */
 
