@@ -1,0 +1,24 @@
+# Build output
+/build/
+*.uf2
+*.elf
+*.bin
+*.hex
+*.map
+*.dis
+
+# Bundled source archives (fetch the Pico SDK / starter separately)
+*.zip
+
+# Editor / OS cruft
+.DS_Store
+Thumbs.db
+
+# Local AI-assistant notes, not for the public repo
+CLAUDE.md
+
+# Extra build directories
+/build-*/
+
+# Windows test server builds (attach them to a release instead)
+*.exe
