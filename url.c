@@ -142,7 +142,8 @@ bool url_resolve(const url_t *base, const char *location, url_t *out)
             *q = '\0';
         if (strlen(path_only) + strlen(location) > URL_PATH_MAX)
             return false;
-        snprintf(out->path, sizeof out->path, "%s%s", path_only, location);
+        memcpy(out->path, path_only, strlen(path_only));
+        memcpy(out->path + strlen(path_only), location, strlen(location) + 1);
         return true;
     }
     {
@@ -159,7 +160,8 @@ bool url_resolve(const url_t *base, const char *location, url_t *out)
             slash[1] = '\0';
         if (strlen(dir) + strlen(location) > URL_PATH_MAX)
             return false;
-        snprintf(text, sizeof text, "%s%s", dir, location);
+        memcpy(text, dir, strlen(dir));
+        memcpy(text + strlen(dir), location, strlen(location) + 1);
         return copy_path(text, out->path);
     }
 }

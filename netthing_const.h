@@ -12,7 +12,7 @@
 
 /* Shown on the splash screen; the firmware build reads it from this line, so
  * keep it in the form  #define VERSION "V0.01A"  on one line. */
-#define VERSION "V1.00A"
+#define VERSION "V1.01A"
 
 /* ------------------------------------------------------------------ */
 /*  Colours (full-strength only: dim greys are hard to read on the LCD) */
@@ -84,6 +84,13 @@
 #define NOCHIP_LINE_3       "PICO W OR PICO 2 W. A PLAIN PICO OR"
 #define NOCHIP_LINE_4       "PICO 2 HAS NO WI-FI OR BLUETOOTH."
 #define NOCHIP_LINE_5       "ESC GOES BACK"
+
+/* The question before the connection is dropped (the Disconnect key, or leaving the program) */
+#define CONFIRM_ROW         11
+#define CONFIRM_KEYS_LINE   "Y = YES   ANY OTHER KEY = NO"
+#define CONFIRM_DISCONNECT  "DISCONNECT FROM THE NETWORK?"
+#define CONFIRM_LEAVE       "LEAVE THE PROGRAM?"
+#define CONFIRM_LEAVE_NOTE  "THE WI-FI CONNECTION WILL BE LOST."
 
 /* Signal bars: five cells of BAR_FULL or BAR_EMPTY. A signal at or above
  * the n-th limit (strongest first) earns that many bars. */
@@ -182,7 +189,7 @@
 #define STATUS_COL_LABEL     2
 #define STATUS_COL_VALUE    12
 #define STATUS_HELP         "D DISCONNECT   ESC BACK"
-#define STATUS_HELP_2       "H HEALTH  R ROUTER  T TOOLS  B BLUETOOTH"
+#define STATUS_HELP_2       "T WI-FI TOOLS  L LAN TOOLS  B BLUETOOTH"
 #define STATUS_HELP_3       ""
 #define STATUS_ROW_HELP_3   31
 
@@ -238,13 +245,21 @@
 #define MENU_ROW_STEP        1
 #define MENU_COL             4
 #define MENU_HELP           "PRESS THE LETTER   ESC BACK"
-#define MENU_KEYS           "HPRCMTOLDNSBGWUVK"
-#define MENU_LABELS { \
-    "IS IT WORKING? (HEALTH CHECK)", "PING A HOST", "PING THE ROUTER", "CONTINUOUS PING AND SIGNAL", \
-    "SIGNAL METER", "TRACE ROUTE", \
-    "PORT CHECK", "LAN SCAN", "DNS CHECKER", "NAME LOOKUP", "CHANNEL SURVEY", "SPEED TEST", \
-    "WEB PAGE CHECK", "SET THE CLOCK (NTP)", "UPDATE THE CERTIFICATES", \
-    "WINDOWS TEST SERVER TOOLS...", "BLUETOOTH TOOLS...", NULL }
+#define MENU_KEYS           "HMS"
+#define MENU_LABELS { "IS IT WORKING? (HEALTH CHECK)", "SIGNAL METER", "CHANNEL SURVEY", NULL }
+#define MENU_ROW_FIRST_WIFI   6
+#define MENU_ROW_STEP_WIFI    2
+#define MENU_TITLE          "WI-FI TOOLS"
+
+/* The menu of the tools for the local network and the internet (menu.c) */
+#define LANMENU_TITLE       "LAN TOOLS"
+#define LANMENU_ROW_FIRST     4
+#define LANMENU_ROW_STEP      1
+#define LANMENU_KEYS        "HPRCTDNBGWUSOV"
+#define LANMENU_LABELS { \
+    "IS IT WORKING? (HEALTH CHECK)", "PING A HOST", "PING THE ROUTER", "CONTINUOUS PING AND SIGNAL", "TRACE ROUTE", \
+    "DNS CHECKER", "NAME LOOKUP", "SPEED TEST", "WEB PAGE CHECK", "SET THE CLOCK (NTP)", "UPDATE THE CERTIFICATES", \
+    "SCAN THE LAN FOR DEVICES", "PORT CHECK", "WINDOWS TEST SERVER TOOLS...", NULL }
 
 /* The menu of the tools that need the Windows test server (srvtools.c) */
 #define SERVER_MENU_ROW_FIRST  7

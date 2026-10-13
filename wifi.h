@@ -71,6 +71,9 @@ int  wifi_connect_start(const char *ssid, const char *password, uint8_t security
 int  wifi_link_state(void);
 void wifi_disconnect(void);
 
+/* True when the radio is up and joined to a network with an address. */
+bool wifi_connected(void);
+
 typedef struct {
     char    ssid[WIFI_SSID_MAX + 1];    /* the network joined */
     int16_t rssi;                       /* its signal now, in dBm */

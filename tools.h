@@ -19,7 +19,8 @@ void tool_trace(void);              /* trace.c */
 void tool_ports(void);              /* ports.c */
 void tool_lan(void);                /* lan.c */
 void tool_survey(void);             /* survey.c */
-void tool_menu(void);               /* menu.c */
+void tool_menu(void);               /* menu.c: the Wi-Fi tools */
+void tool_lan_menu(void);           /* menu.c: the LAN tools */
 void tool_health(void);             /* health.c */
 void tool_meter(void);              /* meter.c */
 void tool_bt_menu(void);            /* btmenu.c */

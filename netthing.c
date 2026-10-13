@@ -99,6 +99,21 @@ static const char  *saved_problem;              /* why the list could not be rea
 /* ===================================================================== */
 /*  main: set up the hardware once, then splash -> scan screen -> splash  */
 /* ===================================================================== */
+/* Ask before the connection is dropped. Returns true only for Y. */
+static bool confirm(const char *line_1, const char *line_2)
+{
+    uint8_t key;
+
+    lcd_clear_screen();
+    put_row(CONFIRM_ROW, line_1, COL_YELLOW);
+    if (line_2 != NULL && line_2[0] != '\0')
+        put_row(CONFIRM_ROW + 1, line_2, COL_WHITE);
+    put_row(CONFIRM_ROW + 3, CONFIRM_KEYS_LINE, COL_CYAN);
+    drain_keys();
+    key = wait_any_key();
+    return key == 'y' || key == 'Y';
+}
+
 int main(void)
 {
     plat_init();
@@ -111,8 +126,11 @@ int main(void)
         splash_screen();
 
         uint8_t key = wait_any_key();
-        if (key == KEY_ESC || key == 'q' || key == 'Q')
+        if (key == KEY_ESC || key == 'q' || key == 'Q') {
+            if (wifi_connected() && !confirm(CONFIRM_LEAVE, CONFIRM_LEAVE_NOTE))
+                continue;     /* an ESC too many: stay in the program, still connected */
             go_loader();      /* does not return */
+        }
         scan_screen();        /* returns when ESC is pressed */
     }
 }
@@ -666,14 +684,18 @@ static void status_screen(void)
         if (key == KEY_ESC)
             return;
         if (key == 'd' || key == 'D') {
-            wifi_disconnect();
-            return;
+            if (confirm(CONFIRM_DISCONNECT, info.ssid)) {
+                wifi_disconnect();
+                return;
+            }
+            draw_status_frame();
+            last = now - STATUS_UPDATE_MS;
+            drain_keys();
+            continue;
         }
-        if (key == 't' || key == 'T' || key == 'r' || key == 'R' || key == 'h' || key == 'H' || key == 'b' || key == 'B') {
-            if (key == 'r' || key == 'R')
-                tool_ping_gateway();
-            else if (key == 'h' || key == 'H')
-                tool_health();
+        if (key == 't' || key == 'T' || key == 'l' || key == 'L' || key == 'b' || key == 'B') {
+            if (key == 'l' || key == 'L')
+                tool_lan_menu();
             else if (key == 'b' || key == 'B')
                 tool_bt_menu();
             else

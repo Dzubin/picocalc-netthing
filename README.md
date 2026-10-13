@@ -19,19 +19,21 @@ security type, and shows the details of the one you choose. You can join a netwo
 saved on the SD card), see the address the access point gave the PicoCalc, and keep a list of saved networks.
 
 Once connected, the **status screen** shows the addresses, a live signal strength and a strip of the signal over the last few
-minutes. From there `H` runs a **health check** ("is it working?" with traffic lights and a plain sentence), `R` pings the
-router at once, and `T` opens the **tools menu**:
+minutes. From there `T` opens the **Wi-Fi tools menu**, `L` the **LAN tools menu** and `B` the **Bluetooth menu**.
 
-- ping, ping the router, continuous ping with a graph and a log file, trace route, port check, LAN scan;
-- a DNS checker, name lookup, a speed test, a web page check (the status code a server answers with, not the page);
-- a signal meter and a channel survey, for finding the best spot and the quietest channel;
-- setting the clock from an NTP time server, and an update of the https certificates from inside the program;
-- Bluetooth tools (the Pico 2 W's chip does Bluetooth too): a scan of the devices around, finding one by its signal, reading
+The **Wi-Fi tools** are about the radio: a signal meter and a channel survey, for finding the best spot and the quietest
+channel, and the health check ("is it working?" with traffic lights and a plain sentence), which is in the LAN tools menu too.
+
+The **LAN tools** are for the network behind the radio: the health check, ping, ping the router, continuous ping with a graph and a log
+file, trace route, a DNS checker, name lookup, a speed test, a web page check (the status code a server answers with, not the page),
+setting the clock from an NTP time server, an update of the https certificates from inside the program, a scan of the local network
+with a map of its devices, a port check, and, in a menu of their own because most people who run the program will not have the
+server, the tools for the Windows test server (download and upload speed to it, a latency test, and a talk with it).
+
+The **Bluetooth tools** (the Pico 2 W's chip does Bluetooth too): a scan of the devices around, finding one by its signal, reading
   what a device says about itself, a tracker alert and a 2.4 GHz crowding report.
 
-Most tools draw a picture as well as the text (see "Pictures" below). A separate menu holds the tools that need the Windows
-test server (download and upload speed to it, a latency test, and a talk with it), because most people who run the program
-will not have the server.
+Most tools draw a picture as well as the text (see "Pictures" below).
 
 ## What you need
 
@@ -126,17 +128,17 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | Key | Where | Does |
 |---|---|---|
 | any key | splash | starts the radio and the scan |
-| `ESC` or `Q` | splash | leaves for the PicoCalc UF2 Loader menu (it asks the loader for its menu through the watchdog scratch registers; with no loader installed the program just restarts) |
+| `ESC` or `Q` | splash | leaves for the PicoCalc UF2 Loader menu, after a `LEAVE THE PROGRAM? Y/N` question if Wi-Fi is connected (it asks the loader for its menu through the watchdog scratch registers; with no loader installed the program just restarts) |
 | `Up`, `Down` | scan list | choose an access point |
 | `Enter` | scan list | details: name, BSSID, channel and frequency, signal, security, whether it is saved |
 | `C` | scan list, details | connect to the chosen access point (saved ones need no typing) |
 | `M` | scan list | join a network by typing its name (for a hidden network); the `<hidden>` row with `C` does the same |
 | `S` | scan list | the saved networks, names only; `D` forgets one after a Y/N question |
 | `I` | scan list | the status of the connection (when connected) |
-| `D`, `ESC` | status | `D` disconnects; `ESC` goes back and stays connected |
-| `H` | status | the health check: lights for signal, router, DNS and internet, and a plain sentence on what is wrong |
-| `R` | status | ping the router (the gateway) at once, four requests, no questions |
-| `T` | status | the tools menu: a letter starts a tool (`H` health check, `P` ping, `R` router, `M` signal meter, `C` continuous ping, `T` trace route, `O` port check, `L` LAN scan, `D` DNS checker, `N` name lookup, `S` channel survey, `B` speed test, `G` web page check, `W` clock, `U` certificates, `V` the Windows test server tools, `K` the Bluetooth tools); `ESC` leaves it |
+| `D`, `ESC` | status | `D` disconnects, after a `DISCONNECT FROM THE NETWORK?` Y/N question; `ESC` goes back and stays connected |
+| `T`, `L`, `B` | status | the Wi-Fi tools menu; the LAN tools menu; the Bluetooth menu |
+| `H`, `M`, `S`, `ESC` | Wi-Fi tools menu | the health check; the signal meter; the channel survey; back |
+| a letter | LAN tools menu | `H` health check, `P` ping, `R` ping the router, `C` continuous ping, `T` trace route, `D` DNS checker, `N` name lookup, `B` speed test, `G` web page check, `W` clock, `U` certificates, `S` scan the LAN, `O` port check, `V` the Windows test server tools; `ESC` leaves it |
 | `T`, `D`, `U`, `L`, `ESC` | test server menu | talk to the server; download speed; upload speed; latency test; back |
 | `L`, `C`, `ESC` | continuous ping | start or end the log file; clear the figures; stop |
 | `B` | scan list | the Bluetooth tools (no Wi-Fi connection is needed) |
@@ -160,7 +162,7 @@ Each tool asks for what it needs and offers the last host you used again (they a
 ## Bluetooth tools
 
 The Pico 2 W's wireless chip does Bluetooth (Low Energy and Classic) as well as Wi-Fi, and the program uses it to look at the
-Bluetooth devices around. Open the tools with `K` in the tools menu, or `B` on the Wi-Fi scan list (no Wi-Fi connection is needed).
+Bluetooth devices around. Open them with `B` on the status screen or on the Wi-Fi scan list (no Wi-Fi connection is needed for the scan list).
 The radio is switched on when the Bluetooth menu opens, which takes a second or two (the chip's Bluetooth firmware is loaded), and
 off again when you leave it, so Wi-Fi has the chip to itself the rest of the time. What the program can see is what devices announce
 about themselves; it cannot see the traffic between two other devices, and it cannot read anything that is encrypted.
@@ -202,12 +204,12 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
 | DNS checker (D) | after the text, a chart of the four servers' average times with a line from the fastest to the slowest answer |
 | Trace route (T) | after the text, one bar for each hop as long as its time; `x/3` marks a hop that lost requests |
 | Channel survey (S) | bars (the strongest signal on each channel) or, with `V`, a hill for every network over the channels it covers, with the names of the strongest three |
-| Port check (O) | after the text, a grid of squares: green open, a white frame closed, yellow no answer; the arrow keys show each port |
-| LAN scan (L) | with `M`, a map with a square for every address of the range: green answers ping, yellow does not, white is the router, cyan is this PicoCalc, a dot is nothing; arrows show the address and MAC |
+| Port check | after the text, a grid of squares: green open, a white frame closed, yellow no answer; the arrow keys show each port |
+| LAN scan | with `M`, a map with a square for every address of the range: green answers ping, yellow does not, white is the router, cyan is this PicoCalc, a dot is nothing; arrows show the address and MAC |
 | Latency test (server menu) | a histogram of the 100 round trips in six bands of time |
-| Health check (H) | six lights, each with its reason |
+| Health check | six lights, each with its reason |
 
-- **Health check (H, or menu H):** answers "is it working?" for someone who does not know the tools. It runs from the radio
+- **Health check (H in the Wi-Fi tools menu and in the LAN tools menu):** answers "is it working?" for someone who does not know the tools. It runs from the radio
   outwards, each check with a light and a short reason: the Wi-Fi signal (bars), the router (three pings), DNS (the router's
   DNS server asked for example.com), the internet by ping (three pings to 1.1.1.1), the internet by connection (a TCP
   connection to 1.1.1.1 port 443, which works even where ping is blocked), and whether the PicoCalc has an IPv6 address (shown
@@ -215,27 +217,27 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
   router does not answer (a Wi-Fi or router problem); the router is fine but the internet is not reachable (modem or
   provider); names do not resolve (a DNS problem); it works but something is slow or losing packets; or everything looks good.
   `R` runs it again.
-- **Ping (menu P):** four echo requests one second apart, as Windows does, each with its time, then sent,
+- **Ping (LAN tools menu P):** four echo requests one second apart, as Windows does, each with its time, then sent,
   received, lost, shortest, longest and average. With no host saved it offers the gateway.
-- **Ping the router (R on the status screen, or in the menu):** the same four requests, sent at once to the gateway
+- **Ping the router (LAN tools menu R):** the same four requests, sent at once to the gateway
   address the access point gave, with no questions asked. A router that answers in a few milliseconds and a
   failing ping to the internet means the problem is beyond the router; no answer from the router means the problem is
   the Wi-Fi link or the router itself.
-- **Continuous ping (menu C):** one request a second until `ESC`. The top shows the signal strength, the middle a graph of the
+- **Continuous ping (LAN tools menu C):** one request a second until `ESC`. The top shows the signal strength, the middle a graph of the
   last 100 answers (green up to 50 ms, yellow up to 150 ms, red above; a white full-height bar is a request with no
   answer; the scale of the tallest bar adjusts to the slowest answer shown), and below it the figures: sent, lost and
   percent lost, last, shortest, average and longest time, and jitter (the average change from one answer to the next). `L`
   starts or ends a log: `/netthing/PINGLOG.CSV` gets a line per request with the count, seconds since the start, the time
   in milliseconds (-1 for no answer), the signal in dBm and the clock time if it is set. `C` clears the figures. Walk
   around with the PicoCalc to find where the signal drops or answers get slow.
-- **Trace route (menu T):** sends requests with a hop limit that grows by one so that every router on the way
+- **Trace route (LAN tools menu T):** sends requests with a hop limit that grows by one so that every router on the way
   answers in turn; three requests per hop with their times, and the router's address, until the target answers (shown
   in green), 30 hops, or six hops in a row with no answer at all. Many routers do not answer at all, which shows as
   `* * *`. Works with IPv4 and IPv6 addresses.
-- **Port check (menu O):** asks for a host and a list of TCP ports (`80,443` or `20-25`, up to 64) and tries to
+- **Port check (LAN tools menu O):** asks for a host and a list of TCP ports (`80,443` or `20-25`, up to 64) and tries to
   connect to each: `OPEN` with the connect time, `CLOSED` (the host refused), or `NO ANSWER` after two seconds (a
   firewall that drops the request, or the host is off). Well-known ports are named. The list is remembered.
-- **LAN scan (menu L):** asks for the first and last address to scan (the hosts of your network, or the range you used
+- **LAN scan (LAN tools menu S):** asks for the first and last address to scan (the hosts of your network, or the range you used
   last time on this network; at most 1024 addresses, and a network wider than a /24 is cut to the 254 addresses around
   your own). It sends an ARP request for every address in batches of eight and collects the devices that answer from the
   ARP table, which finds nearly everything on the network, even a device that does not answer ping. Then it pings each one
@@ -243,11 +245,11 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
   address, with `R` marking the router and `T` this PicoCalc. A MAC address in cyan is a private one that the device made
   up for itself (many phones and computers do this per network), so it says nothing about the maker. `ESC` during the scan
   stops it and shows what was found so far. Only devices on your own network can be found this way.
-- **Channel survey (menu S):** scans and draws a bar for each 2.4 GHz channel 1 to 13, as tall as the strongest
+- **Channel survey (Wi-Fi tools menu S):** scans and draws a bar for each 2.4 GHz channel 1 to 13, as tall as the strongest
   signal on it, with the number of networks under it (`+` is ten or more). The channel of the network you are
   connected to is yellow. It names the quietest of the three channels that do not overlap (1, 6, 11) by a crowding
   score that counts every network within four channels, the nearer and stronger the more.
-- **DNS checker (menu D):** asks for a name (the lookup name by default) and sends the same question straight to four DNS
+- **DNS checker (LAN tools menu D):** asks for a name (the lookup name by default) and sends the same question straight to four DNS
   servers: your router's (the one the access point gave), Cloudflare (1.1.1.1), Google (8.8.8.8) and Quad9 (9.9.9.9). Each
   is asked three times for the IPv4 address and once for the IPv6 address. It shows the first address answered, the
   fastest, average and slowest time, and how many IPv6 addresses came back, or why there was no answer (timeout, name not
@@ -256,14 +258,14 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
   does not exist while the public ones find it; its answers share no address with the public ones (often harmless, since
   content networks answer differently from place to place); or DNS looks healthy. The questions go to each server
   directly, so this finds a bad router DNS even when the rest of the program seems to work.
-- **Speed test (menu B):** downloads a file for up to 10 seconds or 8 MB, whichever comes first, and throws the data
+- **Speed test (LAN tools menu B):** downloads a file for up to 10 seconds or 8 MB, whichever comes first, and throws the data
   away (nothing is written to the SD card, so the card cannot slow it). It shows a live figure while it runs and then the
   amount, the average in KB/s and Mbit/s, and the fastest half second. Type the address of a big file; the default is
   `http://speedtest.tele2.net/10MB.zip` and your last one is remembered. http is faster than https on this processor, so
   use http for a fair figure. The test measures the whole path to that server (Wi-Fi, your internet connection and the
   server), so use the Windows server tools to measure only the Wi-Fi link.
-- **Name lookup (menu N):** asks the DNS server (the one the access point gave) for a host's IPv4 address.
-- **Windows test server tools (menu V):** these need `netthing-server-Windows.exe` (the version that goes with this program, in this
+- **Name lookup (LAN tools menu N):** asks the DNS server (the one the access point gave) for a host's IPv4 address.
+- **Windows test server tools (LAN tools menu V):** these need `netthing-server-Windows.exe` (the version that goes with this program, in this
   folder) running on a PC on the same network; type the PC's address it prints and its port (7000). Nothing else in the
   program needs it.
   - **Download speed:** the same speed test, against the server's `/stream` page, so only your Wi-Fi link and the PC are
@@ -277,11 +279,11 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
   reply. The `netthing-server-Windows.exe` test server in this folder answers it: run it on a PC on the
   same network, and type the address it prints. Windows Firewall will ask once whether to allow it; the
   PicoCalc needs a private-network allow. Nothing else in the program needs the test server.
-- **Set the clock (menu W):** asks an NTP server (pool.ntp.org by default) for the time and your offset from
+- **Set the clock (LAN tools menu W):** asks an NTP server (pool.ntp.org by default) for the time and your offset from
   UTC (for example `-6` or `5:30`; there is no automatic daylight saving). The status screen then shows
   the running time. The clock is only in memory and starts again at the next power-up.
 
-- **Web page check (menu G):** type an address (`http://` or `https://`; the scheme may be left out). The program
+- **Web page check (LAN tools menu G):** type an address (`http://` or `https://`; the scheme may be left out). The program
   connects, asks for the page, reads only the status line and headers, and closes. It shows each redirect it
   followed (up to five), the final address, the status (`200 OK`, `404 Not Found`...) with a plain "the page exists" or
   "does not exist", the server's name, the content type and length, and how long the connection and the reply took.
@@ -290,11 +292,11 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
   `/netthing/CA.PEM` on the SD card (see "Setting up https" below). Checking needs the date, so the program sets the clock
   from the NTP server first if `W` has not been used. A site that offers only TLS 1.3 will fail. If the check fails (an unknown
   certificate authority, a wrong date, a certificate that has expired), the screen says so; the usual fixes are the certificate update
-  (menu U) and setting the clock (menu W).
+  (LAN tools menu U) and setting the clock (LAN tools menu W).
 
-## Updating the certificates from the PicoCalc (menu U)
+## Updating the certificates from the PicoCalc (LAN tools menu U)
 
-`U` in the tools menu refreshes `/netthing/CA.PEM` without a PC:
+`U` in the LAN tools menu refreshes `/netthing/CA.PEM` without a PC:
 
 1. It downloads `https://curl.se/ca/cacert.pem.sha256` and `https://curl.se/ca/cacert.pem` (about 190 KB) into
    `/netthing/DOWNLOAD/`. These downloads are themselves checked with the `CA.PEM` that is there now, so the
@@ -315,8 +317,8 @@ https needs a list of the certificate authorities you trust, as a text file name
 **`/netthing/`** folder of the SD card. http pages need no file.
 
 **The automatic way.** The program has the same 32 roots built in. When https needs `CA.PEM` and the card has none (or you
-start the certificate update, menu U), it says `THERE IS NO CERTIFICATE FILE ON THE CARD` and asks `WRITE THE BUILT-IN ONE TO THE
-CARD? Y/N`. Press `Y` and the file is written to `/netthing/CA.PEM`, and the https check goes on. The update (menu U) then
+start the certificate update, LAN tools menu U), it says `THERE IS NO CERTIFICATE FILE ON THE CARD` and asks `WRITE THE BUILT-IN ONE TO THE
+CARD? Y/N`. Press `Y` and the file is written to `/netthing/CA.PEM`, and the https check goes on. The update (LAN tools menu U) then
 keeps it fresh. After you make a new `sdcard/netthing/CA.PEM` (below), run
 `python tools/make_ca_header.py sdcard/netthing/CA.PEM ca_builtin.h` and rebuild to change the built-in list.
 

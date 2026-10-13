@@ -176,6 +176,11 @@ int wifi_link_state(void)
     }
 }
 
+bool wifi_connected(void)
+{
+    return radio_up && wifi_link_state() == WIFI_LINK_UP;
+}
+
 void wifi_disconnect(void)
 {
     if (radio_up)
