@@ -133,7 +133,7 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | Key | Where | Does |
 |---|---|---|
 | any key | splash | starts the radio and the scan |
-| `U` | splash | connect to the LAN with IP over USB (work in progress: see below) |
+| `U` | splash | connect to the LAN with IP over USB (see below) |
 | `ESC` or `Q` | splash | leaves for the PicoCalc UF2 Loader menu, after a `LEAVE THE PROGRAM? Y/N` question if Wi-Fi is connected (it asks the loader for its menu through the watchdog scratch registers; with no loader installed the program just restarts) |
 | `Up`, `Down` | scan list | choose an access point (name green: saved name and BSSID; yellow: only one of the two saved) |
 | `Enter` | scan list | connect to the chosen access point (saved ones need no typing); if a connection is up it asks first, because only one link to the LAN is used at a time |
@@ -389,7 +389,7 @@ tools it must be connected to a network, by **one** of these ways at a time; con
 The top line of every screen says how it is connected.
 
 - **Wi-Fi:** `Enter` on a network in the Wi-Fi scan. Done and working.
-- **IP over USB (new, written but not yet tried on real hardware):** press `U` on the title screen. The PicoCalc's USB port then shows up on a
+- **IP over USB (new; tried on Windows with Internet Connection Sharing, the other systems are untried):** press `U` on the title screen. The PicoCalc's USB port then shows up on a
   PC as a network adapter (RNDIS, which Windows loads its own driver for; Linux also takes it, and macOS gets CDC ECM instead). Plug the PicoCalc into the
   PC with a USB data cable, and share the PC's internet connection with the new adapter; on Windows: Settings, Network & Internet, Advanced
   network settings, More network adapter options, right-click the adapter that has the internet (Wi-Fi or Ethernet), Properties, Sharing,
