@@ -76,9 +76,12 @@ size_t secret_pack(const secret_net_t *nets, unsigned count, uint32_t salt,
         size_t sl = strlen(nets[k].ssid);
         size_t pl = strlen(nets[k].pass);
 
-        if (sl == 0 || sl > SECRET_SSID_MAX || pl > SECRET_PASS_MAX)
+        size_t bl = (size_t)nets[k].bssid_count * SECRET_BSSID_LEN;
+
+        if (sl == 0 || sl > SECRET_SSID_MAX || pl > SECRET_PASS_MAX ||
+            nets[k].bssid_count > SECRET_BSSID_MAX)
             return 0;
-        if (SECRET_HEADER_LEN + n + 2 + sl + pl + SECRET_CRC_LEN > max)
+        if (SECRET_HEADER_LEN + n + 3 + sl + pl + bl + SECRET_CRC_LEN > max)
             return 0;
         body[n++] = (uint8_t)sl;
         memcpy(body + n, nets[k].ssid, sl);
@@ -86,6 +89,9 @@ size_t secret_pack(const secret_net_t *nets, unsigned count, uint32_t salt,
         body[n++] = (uint8_t)pl;
         memcpy(body + n, nets[k].pass, pl);
         n += pl;
+        body[n++] = nets[k].bssid_count;
+        memcpy(body + n, nets[k].bssid, bl);
+        n += bl;
     }
     put32(body + n, crc32_update(0xFFFFFFFFu, body, n) ^ 0xFFFFFFFFu);
     n += SECRET_CRC_LEN;
@@ -106,11 +112,14 @@ int secret_unpack(const uint8_t *in, size_t len, secret_net_t *nets, unsigned ma
     size_t n, pos = 0, i;
     stream_t stream;
     unsigned found, k;
+    bool with_bssids = false;
 
     *count = 0;
     if (len < SECRET_HEADER_LEN + 1 + SECRET_CRC_LEN || len > SECRET_FILE_MAX)
         return 1;
-    if (memcmp(in, SECRET_MAGIC, SECRET_MAGIC_LEN) != 0)
+    if (memcmp(in, SECRET_MAGIC, SECRET_MAGIC_LEN) == 0)
+        with_bssids = true;
+    else if (memcmp(in, SECRET_MAGIC_V1, SECRET_MAGIC_LEN) != 0)
         return 1;
     n = len - SECRET_HEADER_LEN;
     stream_start(&stream, get32(in + SECRET_MAGIC_LEN));
@@ -141,9 +150,62 @@ int secret_unpack(const uint8_t *in, size_t len, secret_net_t *nets, unsigned ma
         memcpy(nets[k].pass, body + pos, pl);
         nets[k].pass[pl] = '\0';
         pos += pl;
+        nets[k].bssid_count = 0;
+        if (with_bssids) {
+            size_t bc;
+
+            if (pos >= n)
+                return 1;
+            bc = body[pos++];
+            if (bc > SECRET_BSSID_MAX || pos + bc * SECRET_BSSID_LEN > n)
+                return 1;
+            memcpy(nets[k].bssid, body + pos, bc * SECRET_BSSID_LEN);
+            nets[k].bssid_count = (uint8_t)bc;
+            pos += bc * SECRET_BSSID_LEN;
+        }
     }
     if (pos != n)
         return 1;
     *count = found;
     return 0;
+}
+
+static int has_bssid(const secret_net_t *net, const uint8_t *bssid)
+{
+    unsigned i;
+
+    for (i = 0; i < net->bssid_count; i++)
+        if (memcmp(net->bssid[i], bssid, SECRET_BSSID_LEN) == 0)
+            return 1;
+    return 0;
+}
+
+int secret_match(const secret_net_t *nets, unsigned count, const char *ssid,
+                 const uint8_t bssid[SECRET_BSSID_LEN])
+{
+    int result = SECRET_MATCH_NONE;
+    unsigned k;
+
+    for (k = 0; k < count; k++) {
+        int name = ssid[0] != '\0' && strcmp(nets[k].ssid, ssid) == 0;
+        int addr = has_bssid(&nets[k], bssid);
+
+        if (name && addr)
+            return SECRET_MATCH_BOTH;
+        if (name || addr)
+            result = SECRET_MATCH_ONE;
+    }
+    return result;
+}
+
+bool secret_add_bssid(secret_net_t *net, const uint8_t bssid[SECRET_BSSID_LEN])
+{
+    if (has_bssid(net, bssid))
+        return false;
+    if (net->bssid_count >= SECRET_BSSID_MAX) {
+        memmove(net->bssid[0], net->bssid[1], (SECRET_BSSID_MAX - 1) * SECRET_BSSID_LEN);
+        net->bssid_count = SECRET_BSSID_MAX - 1;
+    }
+    memcpy(net->bssid[net->bssid_count++], bssid, SECRET_BSSID_LEN);
+    return true;
 }

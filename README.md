@@ -92,7 +92,7 @@ ports.c                     port check
 bt.h, bt_pico.c, _const.h   Bluetooth as the tools see it: power, scans, the table of devices, reading one device (BTstack)
 btdecode.h, .c, _const.h    what a device announces made readable: kind, maker, services, trackers (portable)
 btui.h, btmenu.c            the Bluetooth menu (switches the radio on and off)
-btscan.c                    the lists of Low Energy and Classic devices, and the details of one
+btscan.c                    the Bluetooth screen: Low Energy and Classic devices, and the details of one
 btfind.c, meter.h, meter.c  the signal meter picture, used for Wi-Fi and for finding one Bluetooth device
 btinspect.c, bttrack.c, btcrowd.c   read a device; tracker alert; 2.4 GHz crowding report
 btstack_config.h            what BTstack is built with
@@ -128,29 +128,32 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | Key | Where | Does |
 |---|---|---|
 | any key | splash | starts the radio and the scan |
+| `U` | splash | IP over USB (not built yet: it says so) |
 | `ESC` or `Q` | splash | leaves for the PicoCalc UF2 Loader menu, after a `LEAVE THE PROGRAM? Y/N` question if Wi-Fi is connected (it asks the loader for its menu through the watchdog scratch registers; with no loader installed the program just restarts) |
-| `Up`, `Down` | scan list | choose an access point |
-| `Enter` | scan list | details: name, BSSID, channel and frequency, signal, security, whether it is saved |
-| `C` | scan list, details | connect to the chosen access point (saved ones need no typing) |
+| `Up`, `Down` | scan list | choose an access point (name green: saved name and BSSID; yellow: only one of the two saved) |
+| `Enter` | scan list | connect to the chosen access point (saved ones need no typing); if a connection is up it asks first, because only one link to the LAN is used at a time |
+| `L` | scan list, Bluetooth screen | the LAN tools menu, when connected by any link; otherwise it says `NOT CONNECTED: CONNECT FIRST` |
+| `D` | scan list | details: name, BSSID, channel and frequency, signal, security, whether it is saved |
+| `C` | details | connect to the access point |
 | `M` | scan list | join a network by typing its name (for a hidden network); the `<hidden>` row with `C` does the same |
 | `S` | scan list | the saved networks, names only; `D` forgets one after a Y/N question |
 | `I` | scan list | the status of the connection (when connected) |
 | `D`, `ESC` | status | `D` disconnects, after a `DISCONNECT FROM THE NETWORK?` Y/N question; `ESC` goes back and stays connected |
-| `T`, `L`, `B` | status | the Wi-Fi tools menu; the LAN tools menu; the Bluetooth menu |
+| `T`, `L`, `B` | status | the Wi-Fi tools menu; the LAN tools mode; the Bluetooth mode |
 | `H`, `M`, `S`, `ESC` | Wi-Fi tools menu | the health check; the signal meter; the channel survey; back |
-| a letter | LAN tools menu | `H` health check, `P` ping, `R` ping the router, `C` continuous ping, `T` trace route, `D` DNS checker, `N` name lookup, `B` speed test, `G` web page check, `W` clock, `U` certificates, `S` scan the LAN, `O` port check, `V` the Windows test server tools; `ESC` leaves it |
+| a letter | LAN tools menu | `H` health check, `P` ping, `R` ping the router, `C` continuous ping, `T` trace route, `D` DNS checker, `N` name lookup, `E` speed test, `G` web page check, `K` clock, `U` certificates, `S` scan the LAN, `O` port check, `V` the Windows test server tools; `W` goes to the Wi-Fi scan, `B` to the Bluetooth scan, `ESC` to the title screen |
 | `T`, `D`, `U`, `L`, `ESC` | test server menu | talk to the server; download speed; upload speed; latency test; back |
 | `L`, `C`, `ESC` | continuous ping | start or end the log file; clear the figures; stop |
 | `B` | scan list | the Bluetooth tools (no Wi-Fi connection is needed) |
-| `S`, `F`, `I`, `C`, `T`, `X`, `ESC` | Bluetooth menu | nearby devices; find one by signal; read a device; Classic devices; tracker alert; crowding report; back (switches the radio off) |
+| `Up`, `Down`, `Enter`, `D`, `F`, `I`, `T`, `X`, `L`, `P`, `R`, `W`, `ESC` | Bluetooth screen (nearby devices) | choose; connect (not built yet); details; find the chosen one by its signal; read it; tracker alert; crowding report; the LAN tools; pause; empty the list; back to the Wi-Fi scan (`W`; `ESC` goes to the title screen; either way the radio is switched off) |
 | `Up`, `Down`, `Enter`, `F`, `I`, `C`, `P`, `ESC` | Bluetooth device list | choose; details; find it; read it; clear the list; pause the scan; back |
 | `Up`, `Down`, `PgUp`, `PgDn`, `R`, `ESC` | LAN scan list | scroll; scan again; back |
 | `R`, `V`, `ESC` | channel survey | scan again; bars or hills; back |
 | `Left`, `Right`, `Up`, `Down`, `M`, `R`, `ESC` | LAN map | move over the squares; list or map; scan again; back |
 | `Left`, `Right`, `Up`, `Down`, `ESC` | port grid | choose a square; back |
 | `Enter`, `Tab`, `ESC` | typing a name or password | accept; show or hide the password; cancel |
-| `R` | scan list | scan again |
-| `ESC` | scan list | back to the splash screen (also while a scan is running) |
+| `P`, `R` | scan list | pause or resume the scanning (the list scans over and over, by itself); empty the list and start again |
+| `ESC` | scan list | back to the title screen (also while a scan is running); any key there carries on in the mode you left |
 | `ESC` | details | back to the list |
 | `~` (SHIFT + backtick) | every screen, including while waiting for the network | reboots into BOOTSEL (USB drive) mode. While a name or password is being typed, one `~` is a character and two quickly in a row reboot |
 
@@ -170,6 +173,11 @@ about themselves; it cannot see the traffic between two other devices, and it ca
 - **Nearby devices (S):** a list of the Low Energy devices around, strongest signal first, with the name (or the maker and the end of
   the address, when it gives no name), signal bars and dBm, and what kind of device it seems to be (phone, computer, watch, audio,
   input, tracker, beacon, health, sensor), worked out from what it announces. A name in yellow has not been heard for 15 seconds.
+  Below the list is a **Classic area** with four rows of the Classic devices (phones, computers, headsets, older speakers and car kits), strongest first; the heading shows `1-4 OF 17` when there are more, and the cursor scrolls through them. The Low Energy scan runs
+  in windows of 5 seconds, and after four windows it stops for one Classic inquiry (about 10 to 15 seconds, with the names asked for
+  afterwards), then carries on; the right end of the Classic heading shows `LE 1/4` to `LE 4/4`, `SEARCHING` or `PAUSED`. `P` pauses.
+  The cursor runs down the Low Energy list and on into the Classic rows. `Enter` is the connect key (for tethering to a Classic phone;
+  it says so for now, because tethering is not built yet) and `D` shows the details of any row.
   `Enter` shows the details: the address and whether it is a private one that changes (phones do this), the maker, the services it
   announces, the signal and how often it is heard. Phones often change their address every few minutes, so one phone may show up as
   several devices.
@@ -178,8 +186,6 @@ about themselves; it cannot see the traffic between two other devices, and it ca
 - **Read a device (I):** connects to a Low Energy device and reads its name, maker, model, firmware and battery level (a green,
   yellow or red bar) and the list of its services, then lets go. Many devices accept only one connection, or only their owner's phone;
   the screen then says it failed and suggests turning off the phone's Bluetooth.
-- **Classic devices (C):** an inquiry of about eight seconds for older devices (speakers, car kits, some headsets) that are
-  discoverable, then their names are asked for. `R` searches again.
 - **Tracker alert (T):** looks for the tags that can be found with a phone (Apple's Find My network, Tile and Samsung SmartTag) and shows
   how long each has been in range. A tag that stays in range for many minutes while you move about (yellow after 5 minutes, red
   after 15) is probably with you and may not be yours. A Find My advert can also come from an Apple device that is away from its
@@ -258,7 +264,7 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
   does not exist while the public ones find it; its answers share no address with the public ones (often harmless, since
   content networks answer differently from place to place); or DNS looks healthy. The questions go to each server
   directly, so this finds a bad router DNS even when the rest of the program seems to work.
-- **Speed test (LAN tools menu B):** downloads a file for up to 10 seconds or 8 MB, whichever comes first, and throws the data
+- **Speed test (LAN tools menu E):** downloads a file for up to 10 seconds or 8 MB, whichever comes first, and throws the data
   away (nothing is written to the SD card, so the card cannot slow it). It shows a live figure while it runs and then the
   amount, the average in KB/s and Mbit/s, and the fastest half second. Type the address of a big file; the default is
   `http://speedtest.tele2.net/10MB.zip` and your last one is remembered. http is faster than https on this processor, so
@@ -279,7 +285,7 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
   reply. The `netthing-server-Windows.exe` test server in this folder answers it: run it on a PC on the
   same network, and type the address it prints. Windows Firewall will ask once whether to allow it; the
   PicoCalc needs a private-network allow. Nothing else in the program needs the test server.
-- **Set the clock (LAN tools menu W):** asks an NTP server (pool.ntp.org by default) for the time and your offset from
+- **Set the clock (LAN tools menu K):** asks an NTP server (pool.ntp.org by default) for the time and your offset from
   UTC (for example `-6` or `5:30`; there is no automatic daylight saving). The status screen then shows
   the running time. The clock is only in memory and starts again at the next power-up.
 
@@ -292,7 +298,7 @@ poor, white is "no answer" or a frame. The ping scale is green up to 50 ms, yell
   `/netthing/CA.PEM` on the SD card (see "Setting up https" below). Checking needs the date, so the program sets the clock
   from the NTP server first if `W` has not been used. A site that offers only TLS 1.3 will fail. If the check fails (an unknown
   certificate authority, a wrong date, a certificate that has expired), the screen says so; the usual fixes are the certificate update
-  (LAN tools menu U) and setting the clock (LAN tools menu W).
+  (LAN tools menu U) and setting the clock (LAN tools menu K).
 
 ## Updating the certificates from the PicoCalc (LAN tools menu U)
 
@@ -362,6 +368,15 @@ hand, and only for https.
 | `PINGLOG.CSV` | the log of a continuous ping, if you started one |
 | `DOWNLOAD/` | the certificate update's downloads |
 
+## Modes and the title screen
+
+After the title screen the program is always in one of three modes: the **Wi-Fi scan**, the **Bluetooth scan** or the **LAN tools**
+menu. `B` and `L` (on the scan screens) and `W` and `B` (in the LAN tools menu) move between them. `ESC` in a mode goes back to the
+title screen, and any key there carries on in the mode that was left (the Wi-Fi scan the first time, and also if the LAN tools have
+no connection any more). Going to the title screen does not drop the connection, so a stray `ESC` costs nothing. `ESC` or `Q` on
+the title screen leaves the program. A scan that was paused starts again when you come back to it from another screen, except that
+the Wi-Fi scan stays paused while a connection is up.
+
 ## Saved networks
 
 After a password you typed has worked, the program asks `SAVE THIS NETWORK? Y/N`. The names and
@@ -370,6 +385,15 @@ passwords of saved networks (up to 16) go in `/netthing/WIFI.DAT` on the SD card
 other hardware shows no plain text password, but the key is in the program, so anyone who has
 the program can undo it. A saved password that the access point later refuses is not removed
 automatically: forget it with `S` and `D`.
+
+The file also keeps the BSSID (the address) of the access points you joined, up to four per
+network. The program reads the file when it starts the scan and keeps it in memory, and every
+save updates both. In the scan list the name of an access point is shown in **green** when a
+saved network has both its name and its BSSID, and in **yellow** when only one of them is saved
+(the same name on an access point not joined before, or a saved BSSID under another name, or a
+saved network that has no BSSID yet). Joining a saved network adds the BSSID of the access
+point you reached, so a yellow name turns green after the first connection. A file from an
+earlier version is still read; the next save writes the new kind.
 
 ## Building
 
@@ -389,7 +413,8 @@ PowerShell on Windows, not Git Bash (see the Pico notes in the author's lessons 
 The same program builds for the older Pico W, as `netthing-RP2040.uf2`. That chip has 264 KB of RAM against the Pico 2 W's 520 KB,
 so this build has smaller limits: the https certificate list holds about 15 roots (the first ones of `CA.PEM`; the rest are
 ignored), the Bluetooth device list holds 32 devices, and the network buffers are smaller, so very large web pages may be slower.
-Everything else is the same. It has been compiled but **not run on real hardware**: its author has only a Pico 2 W.
+The tools for the Windows test server are left out of this build (they took about 6.5 KB of program space and 5.8 KB of RAM), so the
+LAN tools menu has no `V`. Everything else is the same. It has been compiled but **not run on real hardware**: its author has only a Pico 2 W.
 
 ```bash
 cmake -B build-rp2040 -G Ninja -DPICO_BOARD=pico_w

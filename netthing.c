@@ -57,6 +57,7 @@
 #include "ui.h"           /* rows of text, keys, typing a line                */
 #include "gfx.h"          /* the strip of the signal history                  */
 #include "tools.h"        /* ping, name lookup, test server, the clock        */
+#include "link.h"         /* how the LAN is reached                           */
 #include "netthing_const.h"   /* every constant and screen position */
 
 /* ===================================================================== */
@@ -73,8 +74,7 @@ static int  saved_find(const char *ssid);
 static bool saved_store(void);
 
 static void splash_screen(void);
-static void scan_screen(void);
-static bool run_scan(void);
+static int  scan_screen(void);
 static void draw_scan_screen(unsigned top, unsigned chosen);
 static void draw_heading(void);
 static void draw_ap_row(unsigned slot, unsigned index, bool chosen);
@@ -84,7 +84,9 @@ static uint8_t detail_screen(unsigned index);
 static void connect_selected(unsigned index);
 static void connect_to(const char *ssid_in, uint8_t security, bool ask_name);
 static int  wait_for_link(uint32_t started, bool *cancelled, const char *name);
-static void offer_save(const char *ssid, const char *pass);
+static void offer_save(const char *ssid, const char *pass, const uint8_t *bssid);
+static bool bssid_known(const uint8_t *bssid);
+static void remember_bssid(const char *ssid, const uint8_t *bssid);
 static void status_screen(void);
 static void saved_screen(void);
 
@@ -94,6 +96,7 @@ static void saved_screen(void);
 static secret_net_t saved[SECRET_NETS_MAX];     /* the networks on the SD card */
 static unsigned     saved_count;
 static bool         saved_loaded;
+static int          requested_mode = MODE_NONE;     /* a mode the status screen asked for */
 static const char  *saved_problem;              /* why the list could not be read, or NULL */
 
 /* ===================================================================== */
@@ -104,7 +107,7 @@ static bool confirm(const char *line_1, const char *line_2)
 {
     uint8_t key;
 
-    lcd_clear_screen();
+    screen_clear();
     put_row(CONFIRM_ROW, line_1, COL_YELLOW);
     if (line_2 != NULL && line_2[0] != '\0')
         put_row(CONFIRM_ROW + 1, line_2, COL_WHITE);
@@ -116,6 +119,8 @@ static bool confirm(const char *line_1, const char *line_2)
 
 int main(void)
 {
+    int mode = MODE_WIFI;
+
     plat_init();
 
     sb_init();                /* keyboard / south-bridge I2C (no bg poll) */
@@ -131,7 +136,25 @@ int main(void)
                 continue;     /* an ESC too many: stay in the program, still connected */
             go_loader();      /* does not return */
         }
-        scan_screen();        /* returns when ESC is pressed */
+        if (key == 'u' || key == 'U') {
+            notice(SPLASH_ROW_USB + 2, SPLASH_USB_NOT_READY, COL_YELLOW);
+            continue;
+        }
+        /* The program is in one of three modes. ESC in a mode comes back here, and a key
+         * then goes on in the mode that was left (the Wi-Fi scan the first time). */
+        for (;;) {
+            int next;
+
+            if (mode == MODE_BT)
+                next = tool_bt_menu();
+            else if (mode == MODE_LAN)
+                next = tool_lan_menu();
+            else
+                next = scan_screen();
+            if (next == MODE_TITLE)
+                break;
+            mode = next;
+        }
     }
 }
 
@@ -227,49 +250,70 @@ static void splash_screen(void)
     put_row(SPLASH_ROW_AUTHOR, "BY THOMAS DZUBIN", COL_WHITE);
     put_row(SPLASH_ROW_PROMPT, "PRESS ANY KEY TO START", COL_WHITE);
     put_row(SPLASH_ROW_EXIT, "or ESC / Q to exit", COL_WHITE);
+    put_row(SPLASH_ROW_USB, SPLASH_USB_LINE, COL_WHITE);
 }
 
-/* Scan for access points and wait for the answers, showing how many have come
- * in. Returns false if ESC was pressed meanwhile (the list is then not shown). */
-static bool run_scan(void)
+/* ===================================================================== */
+/*  The scan, over and over                                               */
+/* ===================================================================== */
+/* The scan screen scans all the time: each Wi-Fi scan continues the list of
+ * the one before. */
+#define EVENT_NONE    0
+#define EVENT_STATUS  1         /* the heading changed */
+#define EVENT_LIST    2         /* a Wi-Fi scan ended: the list may have changed */
+
+static bool     scanning;       /* a Wi-Fi scan is running */
+static bool     paused;         /* P: no new scan is started */
+static bool     auto_paused;    /* paused because a link is up (it ends with the link) */
+static bool     fresh = true;   /* the next scan empties the list first */
+static uint32_t scan_started_ms;
+
+/* Carry the scanning on one step. Called often. */
+static int scan_step(void)
 {
-    char line[TCOLS + 1];
-    uint32_t started = plat_now_ms();
-    uint32_t last_draw = started - SCAN_UPDATE_MS;
-
-    if (!wifi_scan_busy() && wifi_scan_start() != 0) {
+    if (paused)
+        return EVENT_NONE;
+    if (scanning) {
+        if (wifi_scan_busy() && plat_now_ms() - scan_started_ms <= SCAN_TIMEOUT_MS)
+            return EVENT_NONE;
+        scanning = false;
+        return EVENT_LIST;
+    }
+    if ((fresh ? wifi_scan_start() : wifi_scan_more()) != 0) {
         put_row(SCAN_ROW_MESSAGE, "THE SCAN WOULD NOT START", COL_YELLOW);
-        return true;
+        paused = true;
+        return EVENT_STATUS;
     }
-    drain_keys();
-    while (wifi_scan_busy()) {
-        uint32_t now = plat_now_ms();
-
-        if (poll_key() == KEY_ESC)
-            return false;
-        if (now - started > SCAN_TIMEOUT_MS)
-            break;
-        if (now - last_draw >= SCAN_UPDATE_MS) {
-            snprintf(line, sizeof line, "SCANNING... %u FOUND", wifi_ap_count());
-            put_row(SCAN_ROW_MESSAGE, line, COL_YELLOW);
-            last_draw = now;
-        }
-        plat_sleep_ms(POLL_MS);
+    scanning = true;
+    scan_started_ms = plat_now_ms();
+    if (fresh) {
+        fresh = false;
+        return EVENT_LIST;              /* the list was emptied */
     }
-    clear_row(SCAN_ROW_MESSAGE);
-    return true;
+    return EVENT_STATUS;
 }
 
-/* "SCAN  12 FOUND" on the left, "R RESCAN" on the right */
+/* Before leaving the scan screen for another screen that uses the radio: let a
+ * running scan end. */
+static void scan_leave(void)
+{
+    uint32_t started = plat_now_ms();
+
+    while (wifi_scan_busy() && plat_now_ms() - started < SCAN_TIMEOUT_MS)
+        plat_sleep_ms(POLL_MS);
+    scanning = false;
+}
+
+/* "WIFI SCAN  12 FOUND" on the left, whether it is scanning on the right */
 static void draw_heading(void)
 {
     char line[TCOLS + 1];
-    static const char rescan[] = "R RESCAN";
+    const char *state = paused ? "PAUSED" : "SCANNING";
 
     clear_row(SCAN_ROW_HEADING);
-    snprintf(line, sizeof line, "SCAN  %u FOUND", wifi_ap_count());
+    snprintf(line, sizeof line, "WIFI SCAN  %u FOUND", wifi_ap_count());
     put_at(0, SCAN_ROW_HEADING, line, COL_CYAN);
-    put_at(TCOLS - (int)(sizeof rescan - 1), SCAN_ROW_HEADING, rescan, COL_CYAN);
+    put_at(TCOLS - (int)strlen(state), SCAN_ROW_HEADING, state, paused ? COL_YELLOW : COL_CYAN);
 }
 
 /* One list row, on screen row SCAN_ROW_FIRST + slot, for access point `index`. */
@@ -279,6 +323,7 @@ static void draw_ap_row(unsigned slot, unsigned index, bool chosen)
     char text[TCOLS + 1];
     unsigned bars, i;
     int row = SCAN_ROW_FIRST + (int)slot;
+    uint16_t name_colour;
 
     clear_row(row);
     if (!wifi_ap_get(index, &ap))
@@ -288,7 +333,18 @@ static void draw_ap_row(unsigned slot, unsigned index, bool chosen)
     put_at(SCAN_COL_MARKER, row, chosen ? ">" : " ", COL_GREEN);
     snprintf(text, sizeof text, "%.*s", SCAN_NAME_WIDTH,
              ap.ssid[0] ? ap.ssid : SCAN_HIDDEN_NAME);
-    put_at(SCAN_COL_NAME, row, text, chosen ? COL_CYAN : COL_WHITE);
+    switch (secret_match(saved, saved_count, ap.ssid, ap.bssid)) {
+    case SECRET_MATCH_BOTH:
+        name_colour = COL_GREEN;
+        break;
+    case SECRET_MATCH_ONE:
+        name_colour = COL_YELLOW;
+        break;
+    default:
+        name_colour = chosen ? COL_CYAN : COL_WHITE;
+        break;
+    }
+    put_at(SCAN_COL_NAME, row, text, name_colour);
     for (i = 0; i < BAR_CELLS; i++)
         text[i] = i < bars ? BAR_FULL : BAR_EMPTY;
     text[BAR_CELLS] = '\0';
@@ -310,27 +366,92 @@ static void draw_list(unsigned top, unsigned chosen)
     for (slot = 0; slot < SCAN_ROWS; slot++)
         draw_ap_row(slot, top + slot, top + slot == chosen);
     if (wifi_ap_count() == 0)
-        put_row(SCAN_ROW_FIRST, "NO ACCESS POINTS FOUND", COL_YELLOW);
+        put_row(SCAN_ROW_FIRST, scanning ? "SCANNING..." : "NO ACCESS POINTS FOUND", COL_YELLOW);
 }
 
 /* The scan screen from scratch: help lines, the list, and any trouble with the
  * saved networks. */
 static void draw_scan_screen(unsigned top, unsigned chosen)
 {
-    lcd_clear_screen();
+    screen_clear();
+    put_row(SCAN_ROW_PAUSE, "P=PAUSE", COL_WHITE);
     put_row(SCAN_ROW_HELP, SCAN_HELP_1, COL_WHITE);
     put_row(SCAN_ROW_HELP_2, SCAN_HELP_2, COL_WHITE);
     draw_list(top, chosen);
+    if (paused && wifi_connected())
+        put_row(SCAN_ROW_MESSAGE, SCAN_PAUSED_LINKED, COL_YELLOW);
     if (saved_problem != NULL)
         put_row(SCAN_ROW_MESSAGE, saved_problem, COL_YELLOW);
 }
 
-static void scan_screen(void)
+/* A second connection is only made after the first is given up (one way to the
+ * LAN at a time). Returns false if the operator said no. */
+static bool leave_current_link(void)
+{
+    if (link_kind() != LINK_NONE) {
+        if (!confirm(CONFIRM_DISCONNECT, CONFIRM_SWITCH_NOTE))
+            return false;
+        link_drop();
+    }
+    return true;
+}
+
+/* While a link is up the scanning stays paused (a scan makes the radio leave
+ * the channel for a moment); it starts again when the link is gone. */
+static void pause_for_link(void)
+{
+    if (wifi_connected()) {
+        paused = true;
+        auto_paused = true;
+    } else if (auto_paused) {
+        paused = false;
+        auto_paused = false;
+    }
+}
+
+/* Back from another screen: the scan goes on, unless a link is up. */
+static void resume_scanning(void)
+{
+    paused = false;
+    auto_paused = false;
+    pause_for_link();
+}
+
+/* Keep the marker on the access point that was chosen (by its BSSID) after the
+ * list changed; with none chosen yet it stays on the first row. */
+static void reselect(unsigned *chosen, const uint8_t *bssid, bool have)
+{
+    unsigned i, count = wifi_ap_count();
+    wifi_ap_t ap;
+
+    if (have)
+        for (i = 0; i < count; i++)
+            if (wifi_ap_get(i, &ap) && memcmp(ap.bssid, bssid, sizeof ap.bssid) == 0) {
+                *chosen = i;
+                return;
+            }
+    if (*chosen >= count)
+        *chosen = count ? count - 1 : 0;
+}
+
+/* Remember which access point the marker is on. */
+static void note_chosen(unsigned chosen, uint8_t *bssid, bool *have)
+{
+    wifi_ap_t ap;
+
+    if (wifi_ap_get(chosen, &ap)) {
+        memcpy(bssid, ap.bssid, sizeof ap.bssid);
+        *have = true;
+    }
+}
+
+static int scan_screen(void)
 {
     unsigned chosen = 0, top = 0;
-    bool again = true, redraw = false;
+    uint8_t chosen_bssid[6] = { 0 };
+    bool have_chosen = false, redraw = true;
 
-    lcd_clear_screen();
+    screen_clear();
     put_row(SCAN_ROW_MESSAGE, "STARTING THE WI-FI CHIP...", COL_YELLOW);
     if (wifi_start() != 0) {
         put_row(NOCHIP_ROW, NOCHIP_LINE_1, COL_YELLOW);
@@ -340,66 +461,125 @@ static void scan_screen(void)
         put_row(NOCHIP_ROW + 6, NOCHIP_LINE_5, COL_WHITE);
         while (wait_any_key() != KEY_ESC)
             ;
-        return;
+        return MODE_TITLE;
     }
     saved_load();
+    scanning = paused = auto_paused = false;
+    fresh = true;
+    pause_for_link();
+    drain_keys();
 
     for (;;) {
         uint8_t key;
         unsigned count;
 
-        if (again) {
-            again = false;
-            chosen = top = 0;
-            lcd_clear_screen();
-            put_row(SCAN_ROW_HELP, SCAN_HELP_1, COL_WHITE);
-            put_row(SCAN_ROW_HELP_2, SCAN_HELP_2, COL_WHITE);
-            if (!run_scan())
-                return;
-            redraw = true;
-        }
         if (redraw) {
             redraw = false;
             draw_scan_screen(top, chosen);
         }
-        key = wait_any_key();
+        for (;;) {
+            int event;
+
+            key = poll_key();
+            if (key != 0)
+                break;
+            event = scan_step();
+            if (event == EVENT_LIST) {
+                reselect(&chosen, chosen_bssid, have_chosen);
+                if (chosen < top)
+                    top = chosen;
+                else if (chosen >= top + SCAN_ROWS)
+                    top = chosen + 1 - SCAN_ROWS;
+                draw_list(top, chosen);
+            } else if (event == EVENT_STATUS) {
+                draw_heading();
+            }
+            plat_sleep_ms(POLL_MS);
+        }
         count = wifi_ap_count();
-        if (key == KEY_ESC)
-            return;
+        if (key == KEY_ESC) {
+            scan_leave();
+            return MODE_TITLE;
+        }
         if (key == 'r' || key == 'R') {
-            again = true;
+            if (!wifi_scan_busy()) {
+                chosen = top = 0;
+                have_chosen = false;
+                scanning = false;
+            }
+            fresh = true;
+            paused = false;
+            redraw = true;
+        } else if (key == 'p' || key == 'P') {
+            paused = !paused;
+            auto_paused = false;
+            clear_row(SCAN_ROW_MESSAGE);
+            if (paused && wifi_connected())
+                put_row(SCAN_ROW_MESSAGE, SCAN_PAUSED_LINKED, COL_YELLOW);
+            draw_heading();
         } else if (key == KEY_UP && chosen > 0) {
             chosen--;
+            note_chosen(chosen, chosen_bssid, &have_chosen);
         } else if (key == KEY_DOWN && chosen + 1 < count) {
             chosen++;
+            note_chosen(chosen, chosen_bssid, &have_chosen);
         } else if ((key == KEY_ENTER || key == KEY_RETURN) && count > 0) {
-            if (detail_screen(chosen) == 'C')
+            if (leave_current_link()) {
+                scan_leave();
                 connect_selected(chosen);
+            }
+            resume_scanning();
             redraw = true;
-        } else if ((key == 'c' || key == 'C') && count > 0) {
-            connect_selected(chosen);
+        } else if ((key == 'd' || key == 'D') && count > 0) {
+            if (detail_screen(chosen) == 'C' && leave_current_link()) {
+                scan_leave();
+                connect_selected(chosen);
+            }
+            resume_scanning();
             redraw = true;
         } else if (key == 'm' || key == 'M') {
-            connect_to("", 0, true);
+            if (leave_current_link()) {
+                scan_leave();
+                connect_to("", 0, true);
+            }
+            resume_scanning();
             redraw = true;
         } else if (key == 's' || key == 'S') {
             saved_screen();
+            resume_scanning();
             redraw = true;
+        } else if (key == 'l' || key == 'L') {
+            if (link_kind() == LINK_NONE) {
+                notice(SCAN_ROW_MESSAGE, LINK_NEEDED, COL_YELLOW);
+                redraw = true;
+            } else {
+                scan_leave();
+                return MODE_LAN;
+            }
         } else if (key == 'b' || key == 'B') {
-            tool_bt_menu();
-            redraw = true;
+            scan_leave();
+            return MODE_BT;
         } else if (key == 'i' || key == 'I') {
-            if (wifi_link_state() == WIFI_LINK_UP)
+            if (wifi_link_state() == WIFI_LINK_UP) {
+                scan_leave();
                 status_screen();
-            else
+                resume_scanning();
+            } else
                 notice(SCAN_ROW_MESSAGE, "NOT CONNECTED", COL_YELLOW);
             redraw = true;
+        }
+        if (requested_mode != MODE_NONE) {
+            int next = requested_mode;      /* the status screen asked for the LAN tools or Bluetooth */
+
+            requested_mode = MODE_NONE;
+            scan_leave();
+            return next;
         }
         if (chosen < top)
             top = chosen;
         else if (chosen >= top + SCAN_ROWS)
             top = chosen + 1 - SCAN_ROWS;
-        if (!again && !redraw)
+        if (!redraw)
             draw_list(top, chosen);
     }
 }
@@ -418,7 +598,7 @@ static uint8_t detail_screen(unsigned index)
         return 0;
     bars = bars_for(ap.rssi);
 
-    lcd_clear_screen();
+    screen_clear();
     put_row(DETAIL_ROW_HEADING, "ACCESS POINT", COL_CYAN);
 
     put_at(DETAIL_COL_LABEL, DETAIL_ROW_NAME, "NAME", COL_CYAN);
@@ -539,7 +719,7 @@ static void connect_to(const char *ssid_in, uint8_t security, bool ask_name)
     }
 
     attempts = wifi_attempts(security, has_password);
-    lcd_clear_screen();
+    screen_clear();
     put_row(JOIN_ROW_HEADING, "CONNECTING TO", COL_CYAN);
     put_row(JOIN_ROW_NAME, ssid, COL_WHITE);
     put_row(JOIN_ROW_HELP, "ESC CANCELS", COL_WHITE);
@@ -562,13 +742,19 @@ static void connect_to(const char *ssid_in, uint8_t security, bool ask_name)
     }
 
     if (result == WIFI_LINK_UP) {
+        wifi_info_t info;
+
+        if (!wifi_info_get(&info))
+            memset(info.bssid, 0, sizeof info.bssid);
         if (typed && has_password)
-            offer_save(ssid, pass);
+            offer_save(ssid, pass, info.bssid);
+        else if (known >= 0)
+            remember_bssid(ssid, info.bssid);
         status_screen();
         return;
     }
     wifi_disconnect();
-    lcd_clear_screen();
+    screen_clear();
     put_row(JOIN_ROW_HEADING, "COULD NOT CONNECT TO", COL_CYAN);
     put_row(JOIN_ROW_NAME, ssid, COL_WHITE);
     if (result == WIFI_LINK_NO_NETWORK) {
@@ -588,13 +774,13 @@ static void connect_to(const char *ssid_in, uint8_t security, bool ask_name)
 }
 
 /* "SAVE THIS NETWORK? Y/N" after a password that worked. */
-static void offer_save(const char *ssid, const char *pass)
+static void offer_save(const char *ssid, const char *pass, const uint8_t *bssid)
 {
     int at;
     uint8_t key;
 
     saved_load();
-    lcd_clear_screen();
+    screen_clear();
     put_row(JOIN_ROW_HEADING, "CONNECTED TO", COL_CYAN);
     put_row(JOIN_ROW_NAME, ssid, COL_GREEN);
     put_row(JOIN_SAVE_ROW, "SAVE THIS NETWORK? Y/N", COL_WHITE);
@@ -612,6 +798,8 @@ static void offer_save(const char *ssid, const char *pass)
     }
     snprintf(saved[at].ssid, sizeof saved[at].ssid, "%s", ssid);
     snprintf(saved[at].pass, sizeof saved[at].pass, "%s", pass);
+    if (bssid_known(bssid))
+        (void)secret_add_bssid(&saved[at], bssid);
     put_row(JOIN_SAVE_ROW, "SAVING...", COL_YELLOW);
     if (saved_store())
         put_row(JOIN_SAVE_ROW, "SAVED ON THE SD CARD", COL_GREEN);
@@ -620,10 +808,31 @@ static void offer_save(const char *ssid, const char *pass)
     pause_ms(NOTICE_MS);
 }
 
+/* False for an all-zero address (the radio could not say which access point). */
+static bool bssid_known(const uint8_t *bssid)
+{
+    unsigned i;
+
+    for (i = 0; i < 6; i++)
+        if (bssid[i] != 0)
+            return true;
+    return false;
+}
+
+/* After joining a saved network: add the access point to its addresses, and
+ * write the file if that was something new. */
+static void remember_bssid(const char *ssid, const uint8_t *bssid)
+{
+    int at = saved_find(ssid);
+
+    if (at >= 0 && bssid_known(bssid) && secret_add_bssid(&saved[at], bssid))
+        (void)saved_store();
+}
+
 /* The labels and help lines of the status screen. */
 static void draw_status_frame(void)
 {
-    lcd_clear_screen();
+    screen_clear();
     put_row(STATUS_ROW_HEADING, "CONNECTED", COL_GREEN);
     put_row(STATUS_ROW_HELP, STATUS_HELP, COL_WHITE);
     put_row(STATUS_ROW_HELP_2, STATUS_HELP_2, COL_WHITE);
@@ -693,13 +902,16 @@ static void status_screen(void)
             drain_keys();
             continue;
         }
-        if (key == 't' || key == 'T' || key == 'l' || key == 'L' || key == 'b' || key == 'B') {
-            if (key == 'l' || key == 'L')
-                tool_lan_menu();
-            else if (key == 'b' || key == 'B')
-                tool_bt_menu();
-            else
-                tool_menu();
+        if (key == 'l' || key == 'L') {
+            requested_mode = MODE_LAN;      /* the scan screen carries it out */
+            return;
+        }
+        if (key == 'b' || key == 'B') {
+            requested_mode = MODE_BT;
+            return;
+        }
+        if (key == 't' || key == 'T') {
+            tool_menu();
             draw_status_frame();
             last = now - STATUS_UPDATE_MS;
             drain_keys();
@@ -762,7 +974,7 @@ static void saved_screen(void)
             char line[TCOLS + 1];
 
             redraw = false;
-            lcd_clear_screen();
+            screen_clear();
             snprintf(line, sizeof line, "SAVED NETWORKS  %u", saved_count);
             put_at(0, SAVED_ROW_HEADING, line, COL_CYAN);
             for (i = 0; i < saved_count; i++) {

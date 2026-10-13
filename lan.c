@@ -248,7 +248,7 @@ static void draw_map(unsigned selected, uint32_t self, uint32_t gateway)
     for (i = 0; i < device_count; i++)
         if (devices[i].ip >= map_first && devices[i].ip - map_first < map_count)
             map_index[devices[i].ip - map_first] = (int16_t)i;
-    lcd_clear_screen();
+    screen_clear();
     snprintf(line, sizeof line, "LAN MAP  %u DEVICE%s", device_count, device_count == 1 ? "" : "S");
     put_at(1, LAN_ROW_HEADING, line, COL_CYAN);
     for (i = 0; i < map_count; i++)
@@ -278,7 +278,7 @@ void tool_lan(void)
         char line[TOOL_LINE_MAX];
 
         device_count = 0;
-        lcd_clear_screen();
+        screen_clear();
         put_row(2, "LAN SCAN", COL_CYAN);
         snprintf(line, sizeof line, "%u ADDRESSES", (unsigned)(last - first + 1));
         put_row(4, line, COL_WHITE);
@@ -289,7 +289,7 @@ void tool_lan(void)
         stopped = !sweep(self, first, last);
         if (!stopped)
             stopped = !ping_all(self);
-        lcd_clear_screen();
+        screen_clear();
         top = 0;
         selected = 0;
         map_first = first;
@@ -311,7 +311,7 @@ void tool_lan(void)
                 break;
             if (key == 'm' || key == 'M') {
                 map_view = !map_view;
-                lcd_clear_screen();
+                screen_clear();
                 if (map_view)
                     draw_map(selected, self, gateway);
                 else

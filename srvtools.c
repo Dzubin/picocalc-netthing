@@ -23,6 +23,8 @@
 #include "toolsui.h"
 #include "netthing_const.h"
 
+#if CHIP_SERVER_TOOLS
+
 /* Ask for the server's host and port (the ones the server tool used last are offered). */
 static bool ask_server(const char *title, char *host, size_t host_size, unsigned *port)
 {
@@ -390,7 +392,7 @@ void tool_server_menu(void)
         char up;
         const char *at;
 
-        lcd_clear_screen();
+        screen_clear();
         put_row(2, "WINDOWS TEST SERVER TOOLS", COL_CYAN);
         put_row(4, "NEED NETTHING-SERVER ON A PC", COL_WHITE);
         for (i = 0; labels[i] != NULL; i++) {
@@ -415,3 +417,5 @@ void tool_server_menu(void)
         }
     }
 }
+
+#endif /* CHIP_SERVER_TOOLS */

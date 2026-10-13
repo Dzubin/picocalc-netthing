@@ -38,8 +38,8 @@ void meter_frame(const char *title, const char *help)
     unsigned i;
     char line[16];
 
-    lcd_clear_screen();
-    put_row(0, title, COL_CYAN);
+    screen_clear();
+    put_row(1, title, COL_CYAN);
     for (i = 0; i < sizeof ticks / sizeof ticks[0]; i++) {
         int x = METER_X + (int)gfx_signal_height(ticks[i], METER_W);
 

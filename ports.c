@@ -31,7 +31,7 @@ static void draw_grid(unsigned tested, unsigned selected)
     unsigned i;
     char line[TOOL_LINE_MAX];
 
-    lcd_clear_screen();
+    screen_clear();
     put_row(2, "PORT CHECK", COL_CYAN);
     for (i = 0; i < tested; i++) {
         int x = PORTGRID_X + (int)(i % PORTGRID_COLUMNS) * PORTGRID_STEP;

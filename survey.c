@@ -108,8 +108,8 @@ static void draw_survey(void)
     wifi_info_t info;
     bool connected = wifi_info_get(&info);
 
-    lcd_clear_screen();
-    put_row(0, "CHANNEL SURVEY", COL_CYAN);
+    screen_clear();
+    put_row(1, "CHANNEL SURVEY", COL_CYAN);
     snprintf(line, sizeof line, curves ? "%u NETWORKS.  HILL = ONE NETWORK" : "%u NETWORKS.  BAR = STRONGEST SIGNAL", wifi_ap_count());
     put_at(1, SURVEY_ROW_NOTE, line, COL_WHITE);
     memset(count_on, 0, sizeof count_on);
@@ -164,8 +164,8 @@ static bool run_scan(void)
 {
     uint32_t started = plat_now_ms();
 
-    lcd_clear_screen();
-    put_row(0, "CHANNEL SURVEY", COL_CYAN);
+    screen_clear();
+    put_row(1, "CHANNEL SURVEY", COL_CYAN);
     put_row(15, "SCANNING...", COL_YELLOW);
     if (wifi_scan_start() != 0) {
         put_row(17, "THE SCAN WOULD NOT START", COL_YELLOW);

@@ -1,8 +1,9 @@
 /*
- * btmenu.c - the Bluetooth tools menu. The radio is switched on when the menu
- * opens (the firmware of the Bluetooth part of the chip is loaded, which takes a
- * second or two) and off again when it closes, so Wi-Fi has the chip to itself
- * the rest of the time.
+ * btmenu.c - the Bluetooth screen. The radio is switched on when it opens (the
+ * firmware of the Bluetooth part of the chip is loaded, which takes a second or
+ * two) and off again when it closes, so Wi-Fi has the chip to itself the rest
+ * of the time. It opens straight on the nearby devices list (btscan.c); the other
+ * Bluetooth tools run from keys on that list.
  *
  * Author: Thomas Dzubin
  */
@@ -15,6 +16,7 @@
 #include "platform.h"
 #include "ui.h"
 #include "btui.h"
+#include "link.h"
 #include "tools.h"
 #include "netthing_const.h"
 
@@ -22,7 +24,7 @@ bool bt_bring_up(void)
 {
     uint32_t started = plat_now_ms();
 
-    lcd_clear_screen();
+    screen_clear();
     put_row(2, "BLUETOOTH", COL_CYAN);
     put_row(BTMENU_ROW_STATUS, "STARTING THE RADIO...", COL_YELLOW);
     bt_power_on();
@@ -44,44 +46,27 @@ bool bt_bring_up(void)
     return bt_power_state() == BT_POWER_READY;
 }
 
-void tool_bt_menu(void)
+int tool_bt_menu(void)
 {
-    static const char *const labels[] = BTMENU_LABELS;
-    static const char keys[] = BTMENU_KEYS;
+    int next;
 
     if (!bt_bring_up())
-        return;
+        return MODE_WIFI;
     for (;;) {
-        char line[TCOLS + 1];
-        unsigned i;
-        uint8_t key;
-        char up;
-        const char *at;
+        int result = tool_bt_nearby();
 
-        lcd_clear_screen();
-        put_row(2, "BLUETOOTH TOOLS", COL_CYAN);
-        for (i = 0; labels[i] != NULL; i++) {
-            snprintf(line, sizeof line, "%c  %s", keys[i], labels[i]);
-            put_at(MENU_COL, BTMENU_ROW_FIRST + (int)i * BTMENU_ROW_STEP, line, COL_WHITE);
-        }
-        put_row(TOOL_ROW_HELP, MENU_HELP, COL_WHITE);
-        drain_keys();
-        key = wait_any_key();
-        if (key == KEY_ESC)
+        if (result == 'T') {
+            tool_bt_tracker();
+        } else if (result == 'X') {
+            tool_bt_crowding();
+        } else if (result == 'L') {
+            next = MODE_LAN;
             break;
-        up = (key >= 'a' && key <= 'z') ? (char)(key - 'a' + 'A') : (char)key;
-        at = up ? strchr(keys, up) : NULL;
-        if (at == NULL)
-            continue;
-        switch (*at) {
-        case 'S': tool_bt_list(BT_LIST_BROWSE); break;
-        case 'F': tool_bt_list(BT_LIST_FIND); break;
-        case 'I': tool_bt_list(BT_LIST_INSPECT); break;
-        case 'C': tool_bt_classic(); break;
-        case 'T': tool_bt_tracker(); break;
-        case 'X': tool_bt_crowding(); break;
-        default: break;
+        } else {
+            next = result == BT_EXIT_WIFI ? MODE_WIFI : MODE_TITLE;
+            break;
         }
     }
     bt_power_off();
+    return next;
 }

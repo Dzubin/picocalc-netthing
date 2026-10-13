@@ -24,9 +24,13 @@
 #include "wifi.h"
 #include "wifi_pico_const.h"
 
-static wifi_ap_t ap_list[WIFI_AP_MAX];
+static wifi_ap_t ap_list[WIFI_AP_MAX];  /* what the scans heard, written by scan_result() */
+static uint16_t  ap_seen[WIFI_AP_MAX];  /* the scan number each was last heard in */
 static volatile unsigned ap_total;      /* entries filled in ap_list */
-static bool sorted;                     /* ap_list is in signal order */
+static uint16_t  scan_number;
+static wifi_ap_t view[WIFI_AP_MAX];     /* the list the screens read: a sorted copy, made between scans */
+static unsigned  view_total;
+static bool      dirty;                 /* ap_list has changed since view was made */
 static bool radio_up;
 static bool joining;                    /* a connection was started and not ended */
 static char joined_ssid[WIFI_SSID_MAX + 1];
@@ -45,10 +49,21 @@ static int scan_result(void *env, const cyw43_ev_scan_result_t *result)
         if (memcmp(ap_list[i].bssid, result->bssid, sizeof ap_list[i].bssid) == 0)
             break;
     if (i == ap_total) {
-        if (ap_total >= WIFI_AP_MAX)
-            return 0;                   /* no room: this access point is not listed */
-        ap_total = ap_total + 1;
+        if (ap_total >= WIFI_AP_MAX) {
+            /* full: the access point not heard for longest makes room */
+            unsigned oldest = 0, k;
+
+            for (k = 1; k < ap_total; k++)
+                if ((uint16_t)(scan_number - ap_seen[k]) > (uint16_t)(scan_number - ap_seen[oldest]))
+                    oldest = k;
+            if (ap_seen[oldest] == scan_number)
+                return 0;               /* all heard in this scan: this one is not listed */
+            i = oldest;
+        } else {
+            ap_total = ap_total + 1;
+        }
     }
+    ap_seen[i] = scan_number;
     ap = &ap_list[i];
     len = result->ssid_len;
     if (len > WIFI_SSID_MAX)
@@ -59,7 +74,7 @@ static int scan_result(void *env, const cyw43_ev_scan_result_t *result)
     ap->rssi = result->rssi;
     ap->channel = (uint8_t)result->channel;
     ap->security = result->auth_mode;
-    sorted = false;
+    dirty = true;
     return 0;
 }
 
@@ -74,21 +89,56 @@ int wifi_start(void)
     return 0;
 }
 
-int wifi_scan_start(void)
+/* Begin a scan. With `keep` the list stays and the access points not heard for
+ * WIFI_AP_KEEP_SCANS scans are dropped; otherwise the list is emptied first. */
+static int scan_begin(bool keep)
 {
     cyw43_wifi_scan_options_t options;
+    unsigned i, kept = 0;
 
     if (!radio_up)
         return 1;
     memset(&options, 0, sizeof options);
-    ap_total = 0;
-    sorted = true;
+    cyw43_arch_lwip_begin();
+    scan_number++;
+    if (keep) {
+        for (i = 0; i < ap_total; i++) {
+            if ((uint16_t)(scan_number - ap_seen[i]) > WIFI_AP_KEEP_SCANS)
+                continue;
+            if (kept != i) {
+                ap_list[kept] = ap_list[i];
+                ap_seen[kept] = ap_seen[i];
+            }
+            kept++;
+        }
+        ap_total = kept;
+    } else {
+        ap_total = 0;
+        view_total = 0;
+    }
+    dirty = true;
+    cyw43_arch_lwip_end();
     return cyw43_wifi_scan(&cyw43_state, &options, NULL, scan_result) == 0 ? 0 : 2;
+}
+
+int wifi_scan_start(void)
+{
+    return scan_begin(false);
+}
+
+int wifi_scan_more(void)
+{
+    return scan_begin(true);
 }
 
 bool wifi_scan_busy(void)
 {
     return radio_up && cyw43_wifi_scan_active(&cyw43_state);
+}
+
+unsigned wifi_scan_found(void)
+{
+    return ap_total;
 }
 
 /* strongest signal first (rssi is negative, so a larger value is stronger) */
@@ -100,20 +150,32 @@ static int by_signal(const void *a, const void *b)
     return y - x;
 }
 
+/* Between scans, copy what was heard into view, strongest first. While a scan
+ * runs the screens keep the list they had, so it does not shift under them. */
+static void view_refresh(void)
+{
+    if (!dirty || wifi_scan_busy())
+        return;
+    cyw43_arch_lwip_begin();
+    memcpy(view, ap_list, ap_total * sizeof view[0]);
+    view_total = ap_total;
+    dirty = false;
+    cyw43_arch_lwip_end();
+    qsort(view, view_total, sizeof view[0], by_signal);
+}
+
 unsigned wifi_ap_count(void)
 {
-    return ap_total;
+    view_refresh();
+    return view_total;
 }
 
 bool wifi_ap_get(unsigned index, wifi_ap_t *out)
 {
-    if (!sorted && !wifi_scan_busy()) {
-        qsort(ap_list, ap_total, sizeof ap_list[0], by_signal);
-        sorted = true;
-    }
-    if (index >= ap_total)
+    view_refresh();
+    if (index >= view_total)
         return false;
-    *out = ap_list[index];
+    *out = view[index];
     return true;
 }
 
@@ -202,6 +264,8 @@ bool wifi_info_get(wifi_info_t *info)
     if (cyw43_wifi_get_rssi(&cyw43_state, &rssi) == 0)
         info->rssi = (int16_t)rssi;
     cyw43_wifi_get_mac(&cyw43_state, CYW43_ITF_STA, info->mac);
+    if (cyw43_wifi_get_bssid(&cyw43_state, info->bssid) != 0)
+        memset(info->bssid, 0, sizeof info->bssid);
     cyw43_arch_lwip_begin();
     ip4addr_ntoa_r(netif_ip4_addr(netif), info->ip, sizeof info->ip);
     ip4addr_ntoa_r(netif_ip4_netmask(netif), info->netmask, sizeof info->netmask);

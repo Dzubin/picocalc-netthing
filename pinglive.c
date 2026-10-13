@@ -236,8 +236,8 @@ void tool_ping_live(void)
         tools_resolve_failed(how);
         return;
     }
-    lcd_clear_screen();
-    put_row(0, "CONTINUOUS PING", COL_CYAN);
+    screen_clear();
+    put_row(1, "CONTINUOUS PING", COL_CYAN);
     snprintf(line, sizeof line, "%.*s", TCOLS - 2, addr);
     put_at(1, LIVE_ROW_HOST, line, COL_WHITE);
     put_row(LIVE_ROW_HELP, LIVE_HELP, COL_WHITE);

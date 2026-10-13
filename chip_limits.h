@@ -14,11 +14,13 @@
 #define CHIP_PBUF_POOL_SIZE  18             /* a 16 KB TLS record needs 11 of them at once */
 #define CHIP_CA_MAX          20480          /* the most of CA.PEM that is read: about 15 roots */
 #define CHIP_BT_DEVICES_MAX  32
+#define CHIP_SERVER_TOOLS    0              /* no Windows test server tools: the RAM is needed elsewhere */
 #else
 #define CHIP_MEM_SIZE        (128 * 1024)
 #define CHIP_PBUF_POOL_SIZE  24
 #define CHIP_CA_MAX          49152
 #define CHIP_BT_DEVICES_MAX  64
+#define CHIP_SERVER_TOOLS    1
 #endif
 
 #endif /* CHIP_LIMITS_H */

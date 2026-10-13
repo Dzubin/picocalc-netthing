@@ -226,7 +226,7 @@ static void draw_chart(void)
         if (servers[i].used && servers[i].answered && servers[i].worst > top)
             top = servers[i].worst;
     top = gfx_scale_up(top);
-    lcd_clear_screen();
+    screen_clear();
     put_row(2, "DNS ANSWER TIME", COL_CYAN);
     for (i = 0; i < DNS_SERVERS_MAX; i++) {
         const server_t *s = &servers[i];

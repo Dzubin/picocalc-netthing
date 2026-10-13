@@ -10,6 +10,8 @@
 #define TOOLS_H
 
 #include <stdbool.h>
+
+#include "modes.h"
 #include <stddef.h>
 
 void tool_ping(void);
@@ -20,10 +22,10 @@ void tool_ports(void);              /* ports.c */
 void tool_lan(void);                /* lan.c */
 void tool_survey(void);             /* survey.c */
 void tool_menu(void);               /* menu.c: the Wi-Fi tools */
-void tool_lan_menu(void);           /* menu.c: the LAN tools */
+int  tool_lan_menu(void);            /* menu.c: the LAN tools mode; returns the mode to go to next */
 void tool_health(void);             /* health.c */
 void tool_meter(void);              /* meter.c */
-void tool_bt_menu(void);            /* btmenu.c */
+int  tool_bt_menu(void);             /* btmenu.c: the Bluetooth mode; returns the mode to go to next */
 void tool_dns_check(void);          /* dnscheck.c */
 void tool_speed(void);              /* fetch.c */
 void tool_server_menu(void);        /* srvtools.c */

@@ -142,8 +142,8 @@ void tool_health(void)
     unsigned bars;
 
     for (;;) {
-        lcd_clear_screen();
-        put_row(0, "IS IT WORKING?", COL_CYAN);
+        screen_clear();
+        put_row(1, "IS IT WORKING?", COL_CYAN);
         put_row(HEALTH_ROW_HELP, "R CHECK AGAIN  ESC BACK", COL_WHITE);
         for (n = 0; n < CHECKS; n++)
             set(n, LIGHT_PENDING, n == 0 ? waiting : "");

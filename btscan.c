@@ -1,8 +1,10 @@
 /*
- * btscan.c - the list of Bluetooth devices around, strongest signal first: Low
- * Energy devices as they announce themselves, or Classic devices found by
- * inquiry. Enter shows the details of one; from the list a device can be
- * followed with the signal meter or connected to and read.
+ * btscan.c - the Bluetooth screen: the Low Energy devices around, strongest
+ * signal first, and below them the Classic devices found by inquiry. The Low
+ * Energy scan runs in windows, and after a few of them it stops for one Classic
+ * inquiry. The cursor runs down the first list and on into the second; Enter is
+ * the connect key (not built yet), D shows the details of a device, and the other
+ * Bluetooth tools are keys on this screen.
  *
  * Author: Thomas Dzubin
  */
@@ -15,13 +17,17 @@
 #include "platform.h"
 #include "ui.h"
 #include "btui.h"
+#include "link.h"
 #include "tools.h"
 #include "toolsui.h"
 #include "netthing_const.h"
 
-static bt_device_t view[BT_DEVICES_MAX];
-static unsigned    order[BT_DEVICES_MAX];       /* indexes into view[], strongest signal first */
-static unsigned    view_count;
+static bt_device_t view[BT_DEVICES_MAX];        /* what was heard lately, both kinds */
+static unsigned    order[BT_DEVICES_MAX];       /* indexes into view[]: the Low Energy devices, strongest signal first */
+static unsigned    le_count;
+static unsigned    corder[BT_DEVICES_MAX];      /* indexes into view[]: the Classic devices, strongest signal first */
+static unsigned    classic_count;
+static uint32_t    shown_now;                   /* the clock the lists are judged by; it stands still while paused */
 
 void bt_device_label(const bt_device_t *d, char *out, unsigned size)
 {
@@ -35,27 +41,34 @@ void bt_device_label(const bt_device_t *d, char *out, unsigned size)
         snprintf(out, size, "%02X:%02X:%02X", d->address[3], d->address[4], d->address[5]);
 }
 
-/* Copy the table and sort it: only the Classic devices or only the Low Energy ones, only those heard
- * lately, the strongest first. */
-static void refresh_view(bool classic)
+/* Copy the table of devices heard lately and sort it into the two lists, the strongest signal first. */
+static void refresh_view(void)
 {
-    unsigned i, count = bt_device_count(), j;
-    uint32_t now = plat_now_ms();
+    unsigned i, count = bt_device_count(), j, n = 0;
+    uint32_t now = shown_now;
 
-    view_count = 0;
-    for (i = 0; i < count && view_count < BT_DEVICES_MAX; i++) {
+    le_count = classic_count = 0;
+    for (i = 0; i < count && n < BT_DEVICES_MAX; i++) {
         bt_device_t d;
+        unsigned *list, *size;
 
-        if (!bt_device_get(i, &d) || d.classic != classic)
+        if (!bt_device_get(i, &d) || now - d.last_ms > BTL_HIDE_MS)
             continue;
-        if (now - d.last_ms > BTL_HIDE_MS)
-            continue;
-        view[view_count] = d;
-        for (j = view_count; j > 0 && view[order[j - 1]].rssi < d.rssi; j--)
-            order[j] = order[j - 1];
-        order[j] = view_count;
-        view_count++;
+        view[n] = d;
+        list = d.classic ? corder : order;
+        size = d.classic ? &classic_count : &le_count;
+        for (j = *size; j > 0 && view[list[j - 1]].rssi < d.rssi; j--)
+            list[j] = list[j - 1];
+        list[j] = n;
+        (*size)++;
+        n++;
     }
+}
+
+/* The device under the cursor: the Low Energy list first, then the Classic one. */
+static const bt_device_t *device_at(unsigned index)
+{
+    return index < le_count ? &view[order[index]] : &view[corder[index - le_count]];
 }
 
 /* ===================================================================== */
@@ -67,7 +80,7 @@ static void show_details(const bt_device_t *d)
     unsigned row = BTD_ROW_FIRST, i;
     const char *maker;
 
-    lcd_clear_screen();
+    screen_clear();
     put_row(2, "DEVICE DETAILS", COL_CYAN);
     put_at(BTD_COL_LABEL, (int)row, "NAME", COL_CYAN);
     put_at(BTD_COL_VALUE, (int)row++, d->adv.has_name ? d->adv.name : "(NONE)", COL_WHITE);
@@ -129,18 +142,17 @@ static void show_details(const bt_device_t *d)
         put_at(BTD_COL_LABEL, BTD_ROW_NOTE, "A FIND MY TAG, OR AN APPLE DEVICE", COL_YELLOW);
         put_at(BTD_COL_LABEL, BTD_ROW_NOTE + 1, "AWAY FROM ITS OWNER.", COL_YELLOW);
     }
-    put_row(BTD_ROW_HELP, d->classic ? "ESC BACK" : "F FIND IT  I READ IT  ESC BACK", COL_WHITE);
+    put_row(BTD_ROW_HELP, d->classic ? "ESC=BACK" : "F=FIND I=READ ESC=BACK", COL_WHITE);
 }
 
 /* ===================================================================== */
 /*  The list                                                              */
 /* ===================================================================== */
-static void draw_row(unsigned row, const bt_device_t *d, bool selected, uint32_t now)
+static void draw_row(int y, const bt_device_t *d, bool selected, uint32_t now)
 {
     char line[TOOL_LINE_MAX], label[BTL_NAME_W + 1];
     unsigned bars = bars_for(d->rssi), i;
     bool stale = now - d->last_ms > BTL_STALE_MS;
-    int y = BTL_ROW_FIRST + (int)row;
 
     clear_row(y);
     put_at(0, y, selected ? ">" : " ", COL_YELLOW);
@@ -156,147 +168,221 @@ static void draw_row(unsigned row, const bt_device_t *d, bool selected, uint32_t
     put_at(BTL_COL_KIND, y, btd_kind_name(d->adv.kind), d->adv.kind == BT_KIND_TRACKER ? COL_YELLOW : COL_WHITE);
 }
 
-static void draw_list(unsigned top, unsigned chosen, bool classic, bool paused, int mode)
+/* The Classic area: a heading with the state of the cycle at its right end, and
+ * the devices from number `first` on. */
+static void draw_classic_area(const char *cycle, unsigned first, unsigned chosen, uint32_t now)
+{
+    char line[TOOL_LINE_MAX];
+    unsigned i;
+
+    clear_row(BTX_ROW_HEADING);
+    if (classic_count > BTX_ROWS)
+        snprintf(line, sizeof line, "CLASSIC  %u-%u OF %u", first + 1, first + BTX_ROWS, classic_count);
+    else
+        snprintf(line, sizeof line, "CLASSIC  %u", classic_count);
+    put_at(1, BTX_ROW_HEADING, line, COL_CYAN);
+    put_at(TCOLS - (int)strlen(cycle), BTX_ROW_HEADING, cycle, COL_CYAN);
+    for (i = 0; i < BTX_ROWS; i++) {
+        if (first + i < classic_count)
+            draw_row(BTX_ROW_FIRST + (int)i, &view[corder[first + i]], chosen == le_count + first + i, now);
+        else
+            clear_row(BTX_ROW_FIRST + (int)i);
+    }
+    if (classic_count == 0)
+        put_at(2, BTX_ROW_FIRST, "NONE HEARD YET", COL_WHITE);
+}
+
+static void draw_list(unsigned top, unsigned cfirst, unsigned chosen, bool paused, const char *cycle)
 {
     char line[TOOL_LINE_MAX];
     unsigned row;
-    uint32_t now = plat_now_ms();
+    const char *state = paused ? "PAUSED" : "SCANNING";
+    uint32_t now = shown_now;
 
-    snprintf(line, sizeof line, "%s  %u DEVICE%s  %s", classic ? "CLASSIC" : "BLUETOOTH", view_count,
-             view_count == 1 ? "" : "S", paused ? "PAUSED" : (classic ? (bt_inquiry_busy() ? "SEARCHING" : "DONE") : "SCANNING"));
     clear_row(BTL_ROW_HEADING);
-    put_at(1, BTL_ROW_HEADING, line, COL_CYAN);
-    for (row = 0; row < BTL_ROWS; row++) {
+    snprintf(line, sizeof line, "BT SCAN  %u FOUND", le_count);
+    put_at(0, BTL_ROW_HEADING, line, COL_CYAN);
+    put_at(TCOLS - (int)strlen(state), BTL_ROW_HEADING, state, paused ? COL_YELLOW : COL_CYAN);
+    for (row = 0; row < BTX_LE_ROWS; row++) {
         unsigned index = top + row;
 
-        if (index < view_count)
-            draw_row(row, &view[order[index]], index == chosen, now);
+        if (index < le_count)
+            draw_row(BTL_ROW_FIRST + (int)row, &view[order[index]], index == chosen, now);
         else
             clear_row(BTL_ROW_FIRST + (int)row);
     }
-    if (classic)
-        put_row(BTL_ROW_HELP, "UP DOWN  ENTER DETAILS", COL_WHITE);
-    else
-        put_row(BTL_ROW_HELP, mode == BT_LIST_FIND ? "UP DOWN  ENTER FOLLOWS THE SIGNAL" :
-                (mode == BT_LIST_INSPECT ? "UP DOWN  ENTER CONNECTS AND READS" : "UP DOWN  ENTER DETAILS  F FIND  I READ"), COL_WHITE);
-    put_row(BTL_ROW_HELP + 1, classic ? "R SEARCH AGAIN  C CLEAR  ESC BACK" : "C CLEAR  P PAUSE  ESC BACK", COL_WHITE);
+    draw_classic_area(cycle, cfirst, chosen, now);
+    put_row(BTX_ROW_PAUSE, "P=PAUSE", COL_WHITE);
+    put_row(BTX_ROW_HELP, "ENTER=CONNECT D=DETAILS L=LAN", COL_WHITE);
+    put_row(BTX_ROW_HELP + 1, "F=FIND I=READ T=TRACKER X=CROWD", COL_WHITE);
+    put_row(BTX_ROW_HELP + 2, "R=RESET W=WIFI ESC=TITLE", COL_WHITE);
 }
 
-static void list_screen(bool classic, int mode)
+/* Returns why it ended: BT_EXIT_BACK, BT_EXIT_WIFI, or the key 'T', 'X' or 'L'. */
+int tool_bt_nearby(void)
 {
-    unsigned top = 0, chosen = 0;
+    unsigned top = 0, cfirst = 0, chosen = 0;
     uint8_t selected[6] = { 0 };
-    bool have_selected = false, paused = false, redraw = true;
-    uint32_t last = 0;
+    bool have_selected = false, paused = false, redraw = true, inquiring = false;
+    unsigned windows = 0;
+    uint32_t last = 0, window_start = plat_now_ms();
+    int exit_code = BT_EXIT_BACK;
+    char cycle[16];
 
-    lcd_clear_screen();
+    screen_clear();
     bt_devices_clear();
-    if (classic)
-        (void)bt_inquiry_start(BTC_SECONDS);
-    else
-        (void)bt_le_scan_start();
+    (void)bt_le_scan_start();
+    shown_now = window_start;
     drain_keys();
     for (;;) {
         uint8_t key = poll_key();
         uint32_t now = plat_now_ms();
 
+        if (!paused)
+            shown_now = now;        /* paused: nothing ages, so the list stays as it was */
         if (key == KEY_ESC)
             break;
         if (now - last >= BTL_REFRESH_MS) {
-            unsigned i;
+            unsigned i, total;
 
             last = now;
-            refresh_view(classic);
+            refresh_view();
+            total = le_count + classic_count;
             if (have_selected) {
                 chosen = 0;
-                for (i = 0; i < view_count; i++)
+                for (i = 0; i < le_count; i++)
                     if (memcmp(view[order[i]].address, selected, 6) == 0)
                         chosen = i;
+                for (i = 0; i < classic_count; i++)
+                    if (memcmp(view[corder[i]].address, selected, 6) == 0)
+                        chosen = le_count + i;
             }
-            if (chosen >= view_count)
-                chosen = view_count ? view_count - 1 : 0;
-            if (chosen < top)
-                top = chosen;
-            if (chosen >= top + BTL_ROWS)
-                top = chosen - BTL_ROWS + 1;
+            if (chosen >= total)
+                chosen = total ? total - 1 : 0;
+            if (chosen < le_count) {
+                if (chosen < top)
+                    top = chosen;
+                if (chosen >= top + BTX_LE_ROWS)
+                    top = chosen - BTX_LE_ROWS + 1;
+            } else {
+                unsigned c = chosen - le_count;
+
+                if (c < cfirst)
+                    cfirst = c;
+                if (c >= cfirst + BTX_ROWS)
+                    cfirst = c - BTX_ROWS + 1;
+            }
+            if (classic_count <= BTX_ROWS)
+                cfirst = 0;
+            else if (cfirst > classic_count - BTX_ROWS)
+                cfirst = classic_count - BTX_ROWS;
             redraw = true;
         }
-        if (key == KEY_DOWN && chosen + 1 < view_count) {
+        if (!paused) {
+            /* the windows of Low Energy scanning, then one Classic inquiry */
+            if (inquiring) {
+                if (!bt_inquiry_busy()) {
+                    inquiring = false;
+                    windows = 0;
+                    window_start = now;
+                    (void)bt_le_scan_start();
+                    redraw = true;
+                }
+            } else if (now - window_start >= BTX_WINDOW_MS) {
+                window_start = now;
+                if (++windows >= BTX_WINDOWS) {
+                    bt_le_scan_stop();
+                    if (bt_inquiry_start(BTC_SECONDS) == 0) {
+                        inquiring = true;
+                    } else {
+                        (void)bt_le_scan_start();
+                        windows = 0;
+                    }
+                }
+                redraw = true;
+            }
+        }
+        if (key == KEY_DOWN && chosen + 1 < le_count + classic_count) {
             chosen++;
-            memcpy(selected, view[order[chosen]].address, 6);
+            memcpy(selected, device_at(chosen)->address, 6);
             have_selected = true;
-            redraw = true;
+            last = 0;
         } else if (key == KEY_UP && chosen > 0) {
             chosen--;
-            memcpy(selected, view[order[chosen]].address, 6);
+            memcpy(selected, device_at(chosen)->address, 6);
             have_selected = true;
+            last = 0;
+        } else if (key == 'l' || key == 'L') {
+            if (link_kind() == LINK_NONE) {
+                notice(BTX_ROW_MESSAGE, LINK_NEEDED, COL_YELLOW);
+                redraw = true;
+            } else {
+                exit_code = 'L';
+                break;
+            }
+        } else if (key == 'w' || key == 'W') {
+            exit_code = BT_EXIT_WIFI;
+            break;
+        } else if (key == 't' || key == 'T' || key == 'x' || key == 'X') {
+            exit_code = key >= 'a' ? key - 'a' + 'A' : key;
+            break;
+        } else if (key == KEY_ENTER || key == KEY_RETURN) {
+            if (le_count + classic_count > 0)
+                notice(BTX_ROW_MESSAGE, chosen < le_count ? BTX_NO_TETHER : BTX_NOT_READY, COL_YELLOW);
             redraw = true;
-        } else if (key == 'c' || key == 'C') {
+        } else if (key == 'r' || key == 'R') {
             bt_devices_clear();
-            view_count = 0;
+            le_count = classic_count = 0;
             have_selected = false;
-            chosen = top = 0;
+            chosen = top = cfirst = 0;
             redraw = true;
-        } else if (classic && (key == 'r' || key == 'R')) {
-            if (!bt_inquiry_busy())
-                (void)bt_inquiry_start(BTC_SECONDS);
-            redraw = true;
-        } else if (!classic && (key == 'p' || key == 'P')) {
+        } else if (key == 'p' || key == 'P') {
             paused = !paused;
-            if (paused)
+            if (paused) {
                 bt_le_scan_stop();
-            else
-                (void)bt_le_scan_start();
+                bt_inquiry_stop();
+            } else {
+                if (!inquiring)
+                    (void)bt_le_scan_start();
+                window_start = now;
+            }
             redraw = true;
-        } else if (view_count > 0 && chosen < view_count &&
-                   (key == KEY_ENTER || key == KEY_RETURN || (!classic && (key == 'f' || key == 'F' || key == 'i' || key == 'I')))) {
-            bt_device_t d = view[order[chosen]];
-            int action = mode;
+        } else if (le_count + classic_count > 0 && (key == 'd' || key == 'D' || key == 'f' || key == 'F' || key == 'i' || key == 'I')) {
+            bt_device_t d = *device_at(chosen);
+            bool le = chosen < le_count;
+            uint8_t k = key;
 
-            if (key == 'f' || key == 'F')
-                action = BT_LIST_FIND;
-            else if (key == 'i' || key == 'I')
-                action = BT_LIST_INSPECT;
-            if (!classic && action == BT_LIST_FIND)
-                bt_find_device(&d);
-            else if (!classic && action == BT_LIST_INSPECT)
-                bt_inspect_device(&d);
-            else {
-                uint8_t k;
-
+            if (key == 'd' || key == 'D') {
                 show_details(&d);
                 drain_keys();
                 k = wait_any_key();
-                if (!classic && (k == 'f' || k == 'F'))
-                    bt_find_device(&d);
-                else if (!classic && (k == 'i' || k == 'I'))
-                    bt_inspect_device(&d);
             }
-            lcd_clear_screen();
-            if (!classic && !paused)
+            if (le && (k == 'f' || k == 'F'))
+                bt_find_device(&d);
+            else if (le && (k == 'i' || k == 'I'))
+                bt_inspect_device(&d);
+            screen_clear();
+            paused = false;                 /* back from another screen: scanning goes on */
+            window_start = plat_now_ms();
+            if (!inquiring)
                 (void)bt_le_scan_start();
             drain_keys();
             last = 0;
             redraw = true;
         }
         if (redraw) {
-            draw_list(top, chosen, classic, paused, mode);
+            if (paused)
+                snprintf(cycle, sizeof cycle, "PAUSED");
+            else if (inquiring)
+                snprintf(cycle, sizeof cycle, "SEARCHING");
+            else
+                snprintf(cycle, sizeof cycle, "LE %u/%u", windows + 1, (unsigned)BTX_WINDOWS);
+            draw_list(top, cfirst, chosen, paused, cycle);
             redraw = false;
         }
         plat_sleep_ms(POLL_MS);
     }
-    if (classic)
-        bt_inquiry_stop();
-    else
-        bt_le_scan_stop();
-}
-
-void tool_bt_list(int mode)
-{
-    list_screen(false, mode);
-}
-
-void tool_bt_classic(void)
-{
-    list_screen(true, BT_LIST_BROWSE);
+    bt_inquiry_stop();
+    bt_le_scan_stop();
+    return exit_code;
 }

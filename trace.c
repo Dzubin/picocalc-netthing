@@ -42,9 +42,9 @@ static void draw_chart(unsigned hops, bool reached)
     unsigned i, top = gfx_scale_up(gfx_top(hop_average, hops));
     char line[TOOL_LINE_MAX];
 
-    lcd_clear_screen();
+    screen_clear();
     snprintf(line, sizeof line, "TRACE TIMES  FULL BAR = %u MS", top);
-    put_at(1, 0, line, COL_CYAN);
+    put_at(1, 1, line, COL_CYAN);
     for (i = 0; i < hops; i++) {
         int row = TRACECHART_ROW_FIRST + (int)i;
 

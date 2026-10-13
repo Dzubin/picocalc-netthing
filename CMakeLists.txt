@@ -46,6 +46,7 @@ add_executable(picocalc-netthing
     netthing.c
     platform_pico.c
     ui.c
+    link.c
     tools.c
     fetch.c
     certs.c
@@ -59,6 +60,7 @@ add_executable(picocalc-netthing
     bt_pico.c
     btmenu.c
     btscan.c
+    tether.c
     btfind.c
     btinspect.c
     bttrack.c

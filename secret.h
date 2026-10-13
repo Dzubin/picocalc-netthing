@@ -8,6 +8,7 @@
 #ifndef SECRET_H
 #define SECRET_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -16,7 +17,22 @@
 typedef struct {
     char ssid[SECRET_SSID_MAX + 1];
     char pass[SECRET_PASS_MAX + 1];     /* empty for an open network */
+    uint8_t bssid_count;                /* access points joined, 0 to SECRET_BSSID_MAX */
+    uint8_t bssid[SECRET_BSSID_MAX][SECRET_BSSID_LEN];  /* oldest first */
 } secret_net_t;
+
+/* How a scanned access point (its name, empty if hidden, and its address)
+ * compares with the saved networks: SECRET_MATCH_BOTH if one network has that
+ * name and lists that address; SECRET_MATCH_ONE if only the name matches (some
+ * network has it, without that address) or only the address matches (listed
+ * under another name); otherwise SECRET_MATCH_NONE. */
+int secret_match(const secret_net_t *nets, unsigned count, const char *ssid,
+                 const uint8_t bssid[SECRET_BSSID_LEN]);
+
+/* Remember an access point address for a network. Returns true if the list
+ * changed (false if the address was already there). When the list is full the
+ * oldest address is dropped. */
+bool secret_add_bssid(secret_net_t *net, const uint8_t bssid[SECRET_BSSID_LEN]);
 
 /* Build the file image for `count` networks with the given salt (any value; a
  * new one at each save makes the bytes differ). Returns its size, or 0 if

@@ -35,7 +35,7 @@ void tool_bt_crowding(void)
     char line[TOOL_LINE_MAX];
     wifi_ap_t ap;
 
-    lcd_clear_screen();
+    screen_clear();
     put_row(2, "2.4 GHZ CROWDING", COL_CYAN);
     put_row(4, "LISTENING TO WI-FI AND BLUETOOTH", COL_WHITE);
     bt_devices_clear();
@@ -102,8 +102,8 @@ void tool_bt_crowding(void)
         level_colour = COL_RED;
     }
 
-    lcd_clear_screen();
-    put_row(0, "2.4 GHZ CROWDING", COL_CYAN);
+    screen_clear();
+    put_row(1, "2.4 GHZ CROWDING", COL_CYAN);
     put_at(1, 2, "WI-FI NETWORKS ON EACH CHANNEL", COL_WHITE);
     {
         unsigned top = 1;

@@ -84,7 +84,7 @@ void tool_bt_tracker(void)
 {
     uint32_t last = 0;
 
-    lcd_clear_screen();
+    screen_clear();
     bt_devices_clear();
     (void)bt_le_scan_start();
     put_row(BTT_ROW_NOTE, "A TAG IN RANGE FOR MANY MINUTES WHILE", COL_WHITE);

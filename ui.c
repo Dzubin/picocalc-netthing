@@ -12,11 +12,18 @@
 
 #include "platform.h"
 #include "ui.h"
+#include "link.h"
 #include "netthing_const.h"
 
 /* ===================================================================== */
 /*  Text on the screen                                                    */
 /* ===================================================================== */
+void screen_clear(void)
+{
+    lcd_clear_screen();
+    link_draw();
+}
+
 void clear_row(int row)
 {
     lcd_solid_rectangle(COL_BG, 0, (uint16_t)(row * GLYPH_HEIGHT), WIDTH,
@@ -241,7 +248,7 @@ bool ask_text(const char *heading, const char *name, const char *label, char *bu
     char note[TCOLS + 1];
 
     for (;;) {
-        lcd_clear_screen();
+        screen_clear();
         put_row(PROMPT_ROW_HEADING, heading, COL_CYAN);
         if (name[0])
             put_row(PROMPT_ROW_NAME, name, COL_WHITE);

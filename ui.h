@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 /* ---- text on the screen ------------------------------------------------ */
+void screen_clear(void);        /* clears the screen and draws the link line (link.h) */
 void clear_row(int row);
 void put_row(int row, const char *str, uint16_t fg);            /* centred   */
 void put_at(int col, int row, const char *str, uint16_t fg);    /* no clear  */

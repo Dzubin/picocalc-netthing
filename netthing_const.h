@@ -49,6 +49,9 @@
 #define SPLASH_ROW_AUTHOR   16
 #define SPLASH_ROW_PROMPT   22
 #define SPLASH_ROW_EXIT     23
+#define SPLASH_ROW_USB      25
+#define SPLASH_USB_LINE     "U = connect with IP over USB"
+#define SPLASH_USB_NOT_READY "USB NETWORKING IS NOT READY YET"
 #define SPLASH_TAGLINE_1    "Wifi and Bluetooth network tools"     /* 40 columns hold only 40 characters, so two lines */
 #define SPLASH_TAGLINE_2    "for troubleshooting"
 
@@ -58,15 +61,18 @@
 /*  row:  "> HomeNet-5G       ####-  -52 11 WPA2"                       */
 /*         marker, name, signal bars, dBm, channel, security            */
 /* ------------------------------------------------------------------ */
-#define SCAN_ROW_HEADING     0      /* "SCAN  12 FOUND         R RESCAN" */
+#define SCAN_ROW_HEADING     1      /* "SCAN  12 FOUND         R RESCAN" */
 #define SCAN_ROW_FIRST       2      /* first access point row            */
 #define SCAN_ROWS           26      /* access points visible at once     */
 #define SCAN_ROW_MESSAGE    29      /* what the radio is doing           */
+#define SCAN_PAUSED_LINKED  "PAUSED  P SCANS  LINK MAY DROP BRIEFLY"   /* while a link is up */
+#define CONFIRM_SWITCH_NOTE "ONE CONNECTION AT A TIME."
 #define BOOTSEL_NOTICE_ROW  29      /* the REBOOTING TO BOOTSEL notice   */
 #define SCAN_ROW_HELP       30      /* two help lines                    */
 #define SCAN_ROW_HELP_2     31
-#define SCAN_HELP_1         "UP DOWN  ENTER DETAILS  C CONNECT  B BT"
-#define SCAN_HELP_2         "M NAME  S SAVED  I STATUS  R SCAN  ESC"
+#define SCAN_ROW_PAUSE      28      /* "P=PAUSE" on a line of its own */
+#define SCAN_HELP_1         "ENTER=CONNECT D=DETAILS B=BLUETOOTH"
+#define SCAN_HELP_2         "M=NAME S=SAVED I=STATUS L=LAN ESC=TITLE"
 
 #define SCAN_COL_MARKER      0
 #define SCAN_COL_NAME        2
@@ -194,7 +200,7 @@
 #define STATUS_ROW_HELP_3   31
 
 /* The list of saved networks */
-#define SAVED_ROW_HEADING    0
+#define SAVED_ROW_HEADING    1
 #define SAVED_ROW_FIRST      2
 #define SAVED_ROW_MESSAGE   29
 #define SAVED_ROW_HELP      31
@@ -253,13 +259,20 @@
 
 /* The menu of the tools for the local network and the internet (menu.c) */
 #define LANMENU_TITLE       "LAN TOOLS"
+#define LANMENU_HELP        "W=WIFI  B=BLUETOOTH  ESC=TITLE"
 #define LANMENU_ROW_FIRST     4
 #define LANMENU_ROW_STEP      1
-#define LANMENU_KEYS        "HPRCTDNBGWUSOV"
+#if CHIP_SERVER_TOOLS
+#define LANMENU_KEYS        "HPRCTDNEGKUSOVWB"     /* the last two, W and B, go to the Wi-Fi and Bluetooth modes */
+#define LANMENU_LAST_LABEL  "WINDOWS TEST SERVER TOOLS...", NULL
+#else
+#define LANMENU_KEYS        "HPRCTDNEGKUSOWB"   /* the Pico W build has no Windows test server tools */
+#define LANMENU_LAST_LABEL  NULL
+#endif
 #define LANMENU_LABELS { \
     "IS IT WORKING? (HEALTH CHECK)", "PING A HOST", "PING THE ROUTER", "CONTINUOUS PING AND SIGNAL", "TRACE ROUTE", \
     "DNS CHECKER", "NAME LOOKUP", "SPEED TEST", "WEB PAGE CHECK", "SET THE CLOCK (NTP)", "UPDATE THE CERTIFICATES", \
-    "SCAN THE LAN FOR DEVICES", "PORT CHECK", "WINDOWS TEST SERVER TOOLS...", NULL }
+    "SCAN THE LAN FOR DEVICES", "PORT CHECK", LANMENU_LAST_LABEL }
 
 /* The menu of the tools that need the Windows test server (srvtools.c) */
 #define SERVER_MENU_ROW_FIRST  7
@@ -275,7 +288,7 @@
 #define LIVE_GRAPH_X         10     /* left edge, pixels */
 #define LIVE_GRAPH_Y         70     /* top, pixels */
 #define LIVE_GRAPH_H        100     /* height, pixels */
-#define LIVE_ROW_HOST         1
+#define LIVE_ROW_HOST         2
 #define LIVE_ROW_SIGNAL       3
 #define LIVE_ROW_SCALE        5
 #define LIVE_ROW_STATS       18     /* four lines from here */
@@ -372,7 +385,7 @@
 #define BTMENU_KEYS         "SFICTX"
 #define BTMENU_LABELS { "NEARBY DEVICES (LOW ENERGY)", "FIND ONE BY ITS SIGNAL", "READ A DEVICE (CONNECT)", \
                         "CLASSIC DEVICES (INQUIRY)", "TRACKER ALERT", "2.4 GHZ CROWDING REPORT", NULL }
-#define BTL_ROW_HEADING       0
+#define BTL_ROW_HEADING       1
 #define BTL_ROW_FIRST         2
 #define BTL_ROWS             26
 #define BTL_ROW_HELP         30     /* two lines */
@@ -384,6 +397,20 @@
 #define BTL_STALE_MS      15000     /* heard longer ago than this: shown in yellow */
 #define BTL_HIDE_MS       60000     /* ... and longer than this: not shown */
 #define BTC_SECONDS           8     /* one Classic inquiry */
+/* The Classic area at the bottom of the nearby devices list: the Low Energy scan
+ * runs in windows, and after BTX_WINDOWS of them it stops for one Classic
+ * inquiry (every fifth turn), then carries on. */
+#define BTX_LE_ROWS          20     /* Low Energy rows when the Classic area is shown */
+#define BTX_ROW_HEADING      22
+#define BTX_ROW_FIRST        23
+#define BTX_ROW_PAUSE        28     /* "P=PAUSE" on a line of its own */
+#define BTX_ROW_HELP         29     /* three lines */
+#define BTX_ROWS              4     /* Classic devices shown, strongest first */
+#define BTX_WINDOW_MS      5000     /* one Low Energy scan window */
+#define BTX_WINDOWS           4     /* windows between two inquiries */
+#define BTX_ROW_MESSAGE      27
+#define BTX_NO_TETHER       "ONLY CLASSIC DEVICES CAN TETHER"
+#define BTX_NOT_READY       "TETHERING IS NOT READY YET"
 #define BTD_ROW_FIRST         5     /* the details of a device */
 #define BTD_ROW_LAST         26
 #define BTD_ROW_NOTE         27
@@ -397,7 +424,7 @@
 #define BTI_BATTERY_GOOD     40
 #define BTI_BATTERY_LOW      15
 #define BTI_BATTERY_W       150     /* pixels */
-#define BTT_ROW_HEADING       0
+#define BTT_ROW_HEADING       1
 #define BTT_ROW_FIRST         2
 #define BTT_ROWS             14
 #define BTT_ROW_NOTE         22
@@ -435,7 +462,7 @@
 #define TRACE_MAX_HOPS       30
 #define TRACE_PROBES          3     /* requests per hop */
 #define TRACE_TIMEOUT_MS   1500
-#define TRACECHART_ROW_FIRST  1     /* the row of hop 1 on the chart */
+#define TRACECHART_ROW_FIRST  2     /* the row of hop 1 on the chart */
 #define TRACECHART_X         24     /* where the bars start, pixels */
 #define TRACECHART_W        200     /* the longest bar */
 #define TRACECHART_H          6
@@ -480,7 +507,7 @@
 #define LAN_BATCH_WAIT_MS   150     /* for the answers to a batch */
 #define LAN_LAST_WAIT_MS    600     /* after the last batch */
 #define LAN_PING_TIMEOUT_MS 600
-#define LAN_ROW_HEADING       0
+#define LAN_ROW_HEADING       1
 #define LAN_ROW_COLUMNS       2
 #define LAN_ROW_FIRST         3
 #define LAN_ROWS             25     /* devices visible at once */

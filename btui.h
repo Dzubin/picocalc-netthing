@@ -11,15 +11,14 @@
 #include <stdbool.h>
 
 #include "bt.h"
+#include "modes.h"
 
-/* What Enter does in the list of devices */
-#define BT_LIST_BROWSE   0      /* show the details of the device */
-#define BT_LIST_FIND     1      /* the signal meter of the device */
-#define BT_LIST_INSPECT  2      /* connect to the device and read it */
-
-void tool_bt_menu(void);
-void tool_bt_list(int mode);    /* btscan.c: the Low Energy devices around, strongest first */
-void tool_bt_classic(void);     /* btscan.c: Classic devices found by inquiry */
+/* The Bluetooth mode: switches the radio on, shows the nearby devices and runs the other tools from its
+ * keys. Returns the mode to go to next (MODE_TITLE for ESC). */
+int  tool_bt_menu(void);
+#define BT_EXIT_BACK     0      /* tool_bt_nearby() results besides the keys 'T', 'X' and 'L' */
+#define BT_EXIT_WIFI     1
+int  tool_bt_nearby(void);      /* btscan.c: the nearby devices with the Classic area; returns why it ended */
 void tool_bt_tracker(void);     /* bttrack.c */
 void tool_bt_crowding(void);    /* btcrowd.c */
 

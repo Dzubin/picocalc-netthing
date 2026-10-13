@@ -99,7 +99,7 @@ int tools_out_row;
 
 void tools_screen(const char *heading, const char *name)
 {
-    lcd_clear_screen();
+    screen_clear();
     put_row(TOOL_ROW_HEADING, heading, COL_CYAN);
     if (name != NULL && name[0])
         put_row(TOOL_ROW_HEADING + 1, name, COL_WHITE);
@@ -376,6 +376,7 @@ void tool_lookup(void)
     tools_finish();
 }
 
+#if CHIP_SERVER_TOOLS
 /* ===================================================================== */
 /*  Talking to a test server                                              */
 /* ===================================================================== */
@@ -488,6 +489,7 @@ void tool_server(void)
     }
     tools_finish();
 }
+#endif /* CHIP_SERVER_TOOLS */
 
 /* ===================================================================== */
 /*  The time                                                              */

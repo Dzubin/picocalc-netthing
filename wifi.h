@@ -39,12 +39,22 @@ int  wifi_start(void);
  * non-zero if a scan cannot start. The scan runs by itself (a few seconds). */
 int  wifi_scan_start(void);
 
+/* Begin a scan that continues the earlier ones: the list is kept, what is heard
+ * again is updated, new access points are added, and those not heard for the
+ * last few scans are dropped. For scanning over and over while walking about. */
+int  wifi_scan_more(void);
+
+/* How many access points the running scan has heard so far (the list that
+ * wifi_ap_count() gives only changes between scans). */
+unsigned wifi_scan_found(void);
+
 /* True while the scan is still running (a few seconds; it ends by itself). */
 bool wifi_scan_busy(void);
 
-/* The access points found so far, strongest signal first once the scan is
- * over. One entry per access point (a network on several access points shows
- * several times). wifi_ap_get() returns false for an index out of range. */
+/* The access points found, strongest signal first. The list changes only when a
+ * scan has ended (the entries do not shift while a scan runs). One entry per
+ * access point (a network on several access points shows several times).
+ * wifi_ap_get() returns false for an index out of range. */
 unsigned wifi_ap_count(void);
 bool     wifi_ap_get(unsigned index, wifi_ap_t *out);
 
@@ -84,6 +94,7 @@ typedef struct {
     char    ip6[WIFI_IP6_MAX];          /* the global IPv6 address, "" until the router has given one */
     char    ip6_local[WIFI_IP6_MAX];    /* the link-local IPv6 address (fe80::...) */
     uint8_t mac[6];                     /* this PicoCalc's Wi-Fi address */
+    uint8_t bssid[6];                   /* the access point joined (all zero if unknown) */
 } wifi_info_t;
 
 /* Fill in the details of the current connection. Returns false if not joined. */
