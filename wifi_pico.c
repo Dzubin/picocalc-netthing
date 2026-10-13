@@ -141,13 +141,32 @@ unsigned wifi_scan_found(void)
     return ap_total;
 }
 
-/* strongest signal first (rssi is negative, so a larger value is stronger) */
+static int (*rank_fn)(const wifi_ap_t *ap);
+
+/* the higher rank first, then the strongest signal (rssi is negative, so a larger value is stronger) */
 static int by_signal(const void *a, const void *b)
 {
     int x = ((const wifi_ap_t *)a)->rssi;
     int y = ((const wifi_ap_t *)b)->rssi;
 
+    if (rank_fn != NULL) {
+        int rx = rank_fn((const wifi_ap_t *)a), ry = rank_fn((const wifi_ap_t *)b);
+
+        if (rx != ry)
+            return ry - rx;
+    }
     return y - x;
+}
+
+void wifi_ap_set_rank(int (*rank)(const wifi_ap_t *ap))
+{
+    rank_fn = rank;
+    dirty = true;
+}
+
+void wifi_ap_resort(void)
+{
+    dirty = true;
 }
 
 /* Between scans, copy what was heard into view, strongest first. While a scan

@@ -7,6 +7,8 @@
 #ifndef CERTS_CONST_H
 #define CERTS_CONST_H
 
+#include "chip_limits.h"
+
 /* Where the Mozilla list of root certificates comes from, and its SHA-256 */
 #define CERTS_LIST_URL      "https://curl.se/ca/cacert.pem"
 #define CERTS_SUM_URL       "https://curl.se/ca/cacert.pem.sha256"
@@ -17,7 +19,7 @@
 #define CERTS_WANT_FILE     "/netthing/CA-WANT.TXT"             /* the names of the roots to keep, one per line */
 #define CERTS_BACKUP_FILE   "/netthing/CA.BAK"                  /* the CA.PEM that was replaced */
 
-#define CERTS_CHUNK         2048        /* bytes read from a file at a time */
+#define CERTS_CHUNK         CHIP_CERTS_CHUNK        /* bytes read from a file at a time (chip_limits.h) */
 #define CERTS_WANT_MAX      4096        /* the most of the names file that is read */
 #define CERTS_SUM_HEX       64          /* hex digits of a SHA-256 */
 

@@ -150,7 +150,7 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | `T`, `D`, `U`, `L`, `ESC` | test server menu | talk to the server; download speed; upload speed; latency test; back |
 | `L`, `C`, `ESC` | continuous ping | start or end the log file; clear the figures; stop |
 | `B` | scan list | the Bluetooth tools (no Wi-Fi connection is needed) |
-| `Up`, `Down`, `Enter`, `D`, `F`, `I`, `T`, `X`, `L`, `P`, `R`, `W`, `ESC` | Bluetooth screen (nearby devices) | choose; connect (not built yet); details; find the chosen one by its signal; read it; tracker alert; crowding report; the LAN tools; pause; empty the list; back to the Wi-Fi scan (`W`; `ESC` goes to the title screen; either way the radio is switched off) |
+| `Up`, `Down`, `Enter`, `D`, `F`, `I`, `T`, `X`, `L`, `P`, `R`, `W`, `ESC` | Bluetooth screen (nearby devices) | choose; tether to the chosen Classic phone; details; find the chosen one by its signal; read it; tracker alert; crowding report; the LAN tools; pause; empty the list; back to the Wi-Fi scan (`W`; `ESC` goes to the title screen; either way the radio is switched off) |
 | `Up`, `Down`, `Enter`, `F`, `I`, `C`, `P`, `ESC` | Bluetooth device list | choose; details; find it; read it; clear the list; pause the scan; back |
 | `Up`, `Down`, `PgUp`, `PgDn`, `R`, `ESC` | LAN scan list | scroll; scan again; back |
 | `R`, `V`, `ESC` | channel survey | scan again; bars or hills; back |
@@ -438,10 +438,26 @@ The top line of every screen says how it is connected.
     selected. If it does appear, System Settings, General, Sharing, Internet Sharing shares the internet with it.
 
   Tell the author if one of these works or needs a change in the program (for example a different USB configuration order).
-- **Bluetooth tethering (in progress, not working yet):** the Bluetooth scan already lists the Classic phones around (the Classic area); `Enter`
-  on one is meant to connect to its shared connection (the PAN profile) and for now only says so. The code in `tether.c` is the start of it.
+- **Bluetooth tethering (first version, written but not yet tried on a phone):** the PicoCalc joins the phone's shared connection as a
+  Bluetooth PAN user (BNEP), gets an address from the phone and runs the LAN tools over it. Steps:
+
+  1. On the phone switch Bluetooth on and **Bluetooth tethering** on (Android: Settings, Network & internet, Hotspot & tethering,
+     Bluetooth tethering; iPhone: Settings, Personal Hotspot, Allow Others to Join, with Bluetooth on).
+  2. On the PicoCalc press `B` for the Bluetooth scan. Phones show in the Classic area at the bottom, once every five 5-second scan windows. A phone is
+     only found while it is *discoverable*, which most are only while their Bluetooth settings screen is open; open it and wait a short while.
+     A phone that is already paired with the PicoCalc is shown in **green** and kept at the top of the list.
+  3. Move the cursor onto the phone (`Down` goes on past the Low Energy list into the Classic rows) and press `Enter`.
+  4. The first time the PicoCalc and the phone pair: a code is shown on both; if they are the same press `Y` on the PicoCalc and accept on the phone.
+     The pairing is kept (in the chip's flash), so next time there is no question.
+  5. The screen shows `ASKING THE PHONE FOR ITS NETWORK`, `OPENING THE LINK`, `WAITING FOR AN ADDRESS (DHCP)`, and then the LAN tools open with
+     `BT <phone> <address>` on the top line. `ESC` cancels at any point. If it says `NO NETWORK OFFERED`, the phone's tethering is off.
+
+  While the link is up the Bluetooth radio stays on, also when you leave the Bluetooth scan.
 
 ## Saved networks
+
+In the Wi-Fi scan list the saved networks (green and yellow names) are always kept at the top, so the one to reconnect to does not move about.
+In the Bluetooth scan the Classic devices that are paired with the PicoCalc are the same: green, at the top of the Classic list.
 
 After a password you typed has worked, the program asks `SAVE THIS NETWORK? Y/N`. The names and
 passwords of saved networks (up to 16) go in `/netthing/WIFI.DAT` on the SD card. The file is
@@ -478,7 +494,7 @@ The same program builds for the older Pico W, as `netthing-RP2040.uf2`. That chi
 so this build has smaller limits: the https certificate list holds about 15 roots (the first ones of `CA.PEM`; the rest are
 ignored), the Bluetooth device list holds 32 devices, and the network buffers are smaller, so very large web pages may be slower.
 The tools for the Windows test server are left out of this build (they took about 6.5 KB of program space and 5.8 KB of RAM), so the
-LAN tools menu has no `V`. Everything else is the same. It has been compiled but **not run on real hardware**: its author has only a Pico 2 W.
+LAN tools menu has no `V`, and the certificate tool copies files in pieces of 512 bytes instead of 2048 (6 KB less RAM, a little slower). Everything else is the same. It has been compiled but **not run on real hardware**: its author has only a Pico 2 W.
 
 ```bash
 cmake -B build-rp2040 -G Ninja -DPICO_BOARD=pico_w

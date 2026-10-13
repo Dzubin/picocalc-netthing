@@ -21,6 +21,10 @@ the version here matches the `VERSION` define in `netthing_const.h`.
   Classic list, `T` tracker alert, `X` crowding report, `P` pause, `R` empty the list, `W` or `ESC` back.
 
 ### Added
+- Bluetooth tethering (first version, not yet tried on a phone): `Enter` on a Classic phone in the Bluetooth scan pairs (a code to confirm), opens a
+  PAN (BNEP) link and gets an address by DHCP; the LAN tools then run over it, and `BT <phone> <address>` is on the top line. The radio stays on
+  while the link is up.
+- The saved Wi-Fi networks (green and yellow names) and the paired Bluetooth Classic devices (green) are kept at the top of their lists.
 - IP over USB (works with Windows Internet Connection Sharing): `U` on the title screen makes the PicoCalc a USB network adapter (RNDIS for Windows, ECM for the others) that
   gets its address from the PC's shared connection (Internet Connection Sharing). The top line shows `USB <address>` and the LAN tools run over it.
   The link layer (`link.c`) gives the tools the addresses of whichever link is up, and a second connection asks to give up the first.

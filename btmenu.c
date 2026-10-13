@@ -59,6 +59,11 @@ int tool_bt_menu(void)
             tool_bt_tracker();
         } else if (result == 'X') {
             tool_bt_crowding();
+        } else if (result == 'P') {
+            if (bt_pan_connect_screen(tool_bt_pan_target())) {
+                next = MODE_LAN;
+                break;
+            }
         } else if (result == 'L') {
             next = MODE_LAN;
             break;

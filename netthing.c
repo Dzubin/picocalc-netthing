@@ -77,7 +77,6 @@ static bool saved_store(void);
 static void splash_screen(void);
 static int  scan_screen(void);
 static int  usb_connect(void);
-static bool leave_current_link(void);
 static void draw_scan_screen(unsigned top, unsigned chosen);
 static void draw_heading(void);
 static void draw_ap_row(unsigned slot, unsigned index, bool chosen);
@@ -392,7 +391,7 @@ static void draw_scan_screen(unsigned top, unsigned chosen)
 
 /* A second connection is only made after the first is given up (one way to the
  * LAN at a time). Returns false if the operator said no. */
-static bool leave_current_link(void)
+bool leave_current_link(void)
 {
     if (link_kind() != LINK_NONE) {
         if (!confirm(CONFIRM_DISCONNECT, CONFIRM_SWITCH_NOTE))
@@ -474,6 +473,13 @@ static void resume_scanning(void)
     pause_for_link();
 }
 
+/* The saved access points go to the top of the list (the ones with the saved name and address first), so the one to
+ * reconnect to stays where it is. */
+static int ap_rank(const wifi_ap_t *ap)
+{
+    return secret_match(saved, saved_count, ap->ssid, ap->bssid);
+}
+
 /* Keep the marker on the access point that was chosen (by its BSSID) after the
  * list changed; with none chosen yet it stays on the first row. */
 static void reselect(unsigned *chosen, const uint8_t *bssid, bool have)
@@ -521,6 +527,7 @@ static int scan_screen(void)
         return MODE_TITLE;
     }
     saved_load();
+    wifi_ap_set_rank(ap_rank);
     scanning = paused = auto_paused = false;
     fresh = true;
     pause_for_link();
@@ -858,6 +865,7 @@ static void offer_save(const char *ssid, const char *pass, const uint8_t *bssid)
     if (bssid_known(bssid))
         (void)secret_add_bssid(&saved[at], bssid);
     put_row(JOIN_SAVE_ROW, "SAVING...", COL_YELLOW);
+    wifi_ap_resort();
     if (saved_store())
         put_row(JOIN_SAVE_ROW, "SAVED ON THE SD CARD", COL_GREEN);
     else
@@ -882,8 +890,10 @@ static void remember_bssid(const char *ssid, const uint8_t *bssid)
 {
     int at = saved_find(ssid);
 
-    if (at >= 0 && bssid_known(bssid) && secret_add_bssid(&saved[at], bssid))
+    if (at >= 0 && bssid_known(bssid) && secret_add_bssid(&saved[at], bssid)) {
         (void)saved_store();
+        wifi_ap_resort();
+    }
 }
 
 /* The labels and help lines of the status screen. */
@@ -1066,6 +1076,7 @@ static void saved_screen(void)
                 if (chosen >= saved_count && chosen > 0)
                     chosen--;
                 (void)saved_store();
+                wifi_ap_resort();
             }
             redraw = true;
         }

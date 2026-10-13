@@ -43,6 +43,9 @@ typedef struct {
  * BT_POWER_STARTING. Switching it off stops any scan. */
 void bt_power_on(void);
 void bt_power_off(void);
+
+/* While true the radio is not switched off by bt_power_off() (only the scans stop): a tether link needs it. */
+void bt_keep_on(bool keep);
 int  bt_power_state(void);
 
 /* Scan for Low Energy devices (active: the answers to scan requests bring names) until stopped. */
@@ -61,6 +64,9 @@ void     bt_devices_clear(void);
 unsigned bt_device_count(void);
 bool     bt_device_get(unsigned index, bt_device_t *out);
 bool     bt_device_find(const uint8_t address[6], bt_device_t *out);
+
+/* True if the device is paired with this PicoCalc (a link key is saved for it). */
+bool     bt_device_paired(const uint8_t address[6]);
 
 /* Connect to a Low Energy device and read its services, name, maker, model, firmware and battery. */
 #define BT_INSPECT_IDLE        0

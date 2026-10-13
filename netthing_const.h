@@ -418,6 +418,12 @@
 #define BTX_WINDOW_MS      5000     /* one Low Energy scan window */
 #define BTX_WINDOWS           4     /* windows between two inquiries */
 #define BTX_ROW_MESSAGE      27
+#define BTPANUI_ROW_HEADING   3
+#define BTPANUI_ROW_NAME      5
+#define BTPANUI_ROW_NOTE      7
+#define BTPANUI_ROW_STATUS   12
+#define BTPANUI_ROW_PAIR     15
+#define BTPANUI_NOTE        "TURN ON BLUETOOTH TETHERING ON THE PHONE"
 #define BTX_NO_TETHER       "ONLY CLASSIC DEVICES CAN TETHER"
 #define BTX_NOT_READY       "TETHERING IS NOT READY YET"
 #define BTD_ROW_FIRST         5     /* the details of a device */

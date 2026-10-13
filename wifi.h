@@ -58,6 +58,12 @@ bool wifi_scan_busy(void);
 unsigned wifi_ap_count(void);
 bool     wifi_ap_get(unsigned index, wifi_ap_t *out);
 
+/* Order the list by `rank` (the higher first) before the signal. Without it the list is by signal alone. */
+void wifi_ap_set_rank(int (*rank)(const wifi_ap_t *ap));
+
+/* The ranks have changed (a network was saved or forgotten): sort the list again when no scan is running. */
+void wifi_ap_resort(void);
+
 /* ---- joining a network ---------------------------------------------- */
 
 /* Where a connection stands; wifi_link_state() polls it. */

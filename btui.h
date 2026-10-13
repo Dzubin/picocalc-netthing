@@ -16,9 +16,11 @@
 /* The Bluetooth mode: switches the radio on, shows the nearby devices and runs the other tools from its
  * keys. Returns the mode to go to next (MODE_TITLE for ESC). */
 int  tool_bt_menu(void);
-#define BT_EXIT_BACK     0      /* tool_bt_nearby() results besides the keys 'T', 'X' and 'L' */
+#define BT_EXIT_BACK     0      /* tool_bt_nearby() results besides the keys 'T', 'X', 'L' and 'P' */
 #define BT_EXIT_WIFI     1
-int  tool_bt_nearby(void);      /* btscan.c: the nearby devices with the Classic area; returns why it ended */
+int  tool_bt_nearby(void);
+const bt_device_t *tool_bt_pan_target(void);   /* btscan.c: the phone Enter was pressed on (result 'P') */
+bool bt_pan_connect_screen(const bt_device_t *device);   /* btpanui.c: true when the link is up */      /* btscan.c: the nearby devices with the Classic area; returns why it ended */
 void tool_bt_tracker(void);     /* bttrack.c */
 void tool_bt_crowding(void);    /* btcrowd.c */
 

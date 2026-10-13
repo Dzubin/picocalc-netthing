@@ -72,6 +72,8 @@ add_executable(picocalc-netthing
     dnsquery.c
     srvtools.c
     usbnet.c
+    btpan.c
+    btpanui.c
     usbnet_desc.c
     ${PICO_TINYUSB_PATH}/lib/networking/rndis_reports.c
     lanscan.c
@@ -142,6 +144,7 @@ target_link_libraries(picocalc-netthing
     pico_btstack_ble
     pico_btstack_classic
     pico_btstack_cyw43
+    pico_btstack_bnep_lwip
     tinyusb_device
     pico_unique_id
     pico_rand

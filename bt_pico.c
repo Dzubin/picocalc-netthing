@@ -16,6 +16,7 @@
 
 #include "bt.h"
 #include "bt_pico_const.h"
+#include "btpan.h"
 
 /* ===================================================================== */
 /*  State                                                                 */
@@ -32,6 +33,7 @@ static unsigned table_count;
 
 static btstack_packet_callback_registration_t hci_registration;
 static bool     stack_started;
+static bool     keep_on;                 /* a tether link is up: the radio stays on */
 static volatile int power_state = BT_POWER_OFF;
 static bool     le_scanning;
 static volatile bool inquiry_on;
@@ -338,18 +340,35 @@ void bt_power_on(void)
         sm_init();
         sm_set_io_capabilities(IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
         gatt_client_init();
+        btpan_init();
         hci_registration.callback = &hci_handler;
         hci_add_event_handler(&hci_registration);
         stack_started = true;
     }
-    power_state = BT_POWER_STARTING;
-    hci_power_control(HCI_POWER_ON);
+    if (power_state != BT_POWER_READY) {      /* already on: no new state event would come */
+        power_state = BT_POWER_STARTING;
+        hci_power_control(HCI_POWER_ON);
+    }
     cyw43_arch_lwip_end();
+}
+
+void bt_keep_on(bool keep)
+{
+    keep_on = keep;
 }
 
 void bt_power_off(void)
 {
     cyw43_arch_lwip_begin();
+    if (keep_on && stack_started) {            /* only the scans stop */
+        if (le_scanning)
+            gap_stop_scan();
+        if (inquiry_on)
+            gap_inquiry_stop();
+        le_scanning = false;
+        cyw43_arch_lwip_end();
+        return;
+    }
     if (stack_started) {
         if (le_scanning)
             gap_stop_scan();
@@ -466,6 +485,20 @@ bool bt_device_get(unsigned index, bt_device_t *out)
     }
     cyw43_arch_lwip_end();
     return ok;
+}
+
+bool bt_device_paired(const uint8_t address[6])
+{
+    bd_addr_t addr;
+    link_key_t key;
+    link_key_type_t type;
+    bool found;
+
+    memcpy(addr, address, 6);
+    cyw43_arch_lwip_begin();
+    found = power_state == BT_POWER_READY && gap_get_link_key_for_bd_addr(addr, key, &type);
+    cyw43_arch_lwip_end();
+    return found;
 }
 
 bool bt_device_find(const uint8_t address[6], bt_device_t *out)

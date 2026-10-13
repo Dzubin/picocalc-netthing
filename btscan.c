@@ -27,6 +27,8 @@ static unsigned    order[BT_DEVICES_MAX];       /* indexes into view[]: the Low 
 static unsigned    le_count;
 static unsigned    corder[BT_DEVICES_MAX];      /* indexes into view[]: the Classic devices, strongest signal first */
 static unsigned    classic_count;
+static bt_device_t pan_target;                  /* the phone to tether to */
+static bool        paired[BT_DEVICES_MAX];      /* by index into view[]: a link key is saved for it */
 static uint32_t    shown_now;                   /* the clock the lists are judged by; it stands still while paused */
 
 void bt_device_label(const bt_device_t *d, char *out, unsigned size)
@@ -55,9 +57,12 @@ static void refresh_view(void)
         if (!bt_device_get(i, &d) || now - d.last_ms > BTL_HIDE_MS)
             continue;
         view[n] = d;
+        paired[n] = d.classic && bt_device_paired(d.address);
         list = d.classic ? corder : order;
         size = d.classic ? &classic_count : &le_count;
-        for (j = *size; j > 0 && view[list[j - 1]].rssi < d.rssi; j--)
+        /* paired devices first, so the phone to connect to stays at the top; then the strongest signal */
+        for (j = *size; j > 0 && (paired[list[j - 1]] < paired[n] ||
+                                  (paired[list[j - 1]] == paired[n] && view[list[j - 1]].rssi < d.rssi)); j--)
             list[j] = list[j - 1];
         list[j] = n;
         (*size)++;
@@ -148,7 +153,7 @@ static void show_details(const bt_device_t *d)
 /* ===================================================================== */
 /*  The list                                                              */
 /* ===================================================================== */
-static void draw_row(int y, const bt_device_t *d, bool selected, uint32_t now)
+static void draw_row(int y, const bt_device_t *d, bool selected, uint32_t now, bool saved)
 {
     char line[TOOL_LINE_MAX], label[BTL_NAME_W + 1];
     unsigned bars = bars_for(d->rssi), i;
@@ -158,7 +163,7 @@ static void draw_row(int y, const bt_device_t *d, bool selected, uint32_t now)
     put_at(0, y, selected ? ">" : " ", COL_YELLOW);
     bt_device_label(d, line, sizeof line);
     snprintf(label, sizeof label, "%.*s", BTL_NAME_W, line);
-    put_at(2, y, label, stale ? COL_YELLOW : COL_WHITE);
+    put_at(2, y, label, saved ? COL_GREEN : (stale ? COL_YELLOW : COL_WHITE));
     for (i = 0; i < BAR_CELLS; i++)
         line[i] = i < bars ? BAR_FULL : BAR_EMPTY;
     line[BAR_CELLS] = '\0';
@@ -184,7 +189,7 @@ static void draw_classic_area(const char *cycle, unsigned first, unsigned chosen
     put_at(TCOLS - (int)strlen(cycle), BTX_ROW_HEADING, cycle, COL_CYAN);
     for (i = 0; i < BTX_ROWS; i++) {
         if (first + i < classic_count)
-            draw_row(BTX_ROW_FIRST + (int)i, &view[corder[first + i]], chosen == le_count + first + i, now);
+            draw_row(BTX_ROW_FIRST + (int)i, &view[corder[first + i]], chosen == le_count + first + i, now, paired[corder[first + i]]);
         else
             clear_row(BTX_ROW_FIRST + (int)i);
     }
@@ -207,7 +212,7 @@ static void draw_list(unsigned top, unsigned cfirst, unsigned chosen, bool pause
         unsigned index = top + row;
 
         if (index < le_count)
-            draw_row(BTL_ROW_FIRST + (int)row, &view[order[index]], index == chosen, now);
+            draw_row(BTL_ROW_FIRST + (int)row, &view[order[index]], index == chosen, now, false);
         else
             clear_row(BTL_ROW_FIRST + (int)row);
     }
@@ -218,7 +223,12 @@ static void draw_list(unsigned top, unsigned cfirst, unsigned chosen, bool pause
     put_row(BTX_ROW_HELP + 2, "R=RESET W=WIFI ESC=TITLE", COL_WHITE);
 }
 
-/* Returns why it ended: BT_EXIT_BACK, BT_EXIT_WIFI, or the key 'T', 'X' or 'L'. */
+const bt_device_t *tool_bt_pan_target(void)
+{
+    return &pan_target;
+}
+
+/* Returns why it ended: BT_EXIT_BACK, BT_EXIT_WIFI, or the key 'T', 'X', 'L' or 'P' (tether to pan_target). */
 int tool_bt_nearby(void)
 {
     unsigned top = 0, cfirst = 0, chosen = 0;
@@ -327,8 +337,13 @@ int tool_bt_nearby(void)
             exit_code = key >= 'a' ? key - 'a' + 'A' : key;
             break;
         } else if (key == KEY_ENTER || key == KEY_RETURN) {
+            if (le_count + classic_count > 0 && chosen >= le_count) {
+                pan_target = *device_at(chosen);
+                exit_code = 'P';
+                break;
+            }
             if (le_count + classic_count > 0)
-                notice(BTX_ROW_MESSAGE, chosen < le_count ? BTX_NO_TETHER : BTX_NOT_READY, COL_YELLOW);
+                notice(BTX_ROW_MESSAGE, BTX_NO_TETHER, COL_YELLOW);
             redraw = true;
         } else if (key == 'r' || key == 'R') {
             bt_devices_clear();
