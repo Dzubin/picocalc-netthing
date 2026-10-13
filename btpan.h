@@ -15,6 +15,10 @@
 
 #include "wifi.h"
 #include "btpan_const.h"
+#include "chip_limits.h"
+#include <string.h>
+
+#if CHIP_BT_TETHER
 
 /* One-time setup of the BNEP part of the stack (called when the stack starts). */
 void btpan_init(void);
@@ -41,5 +45,19 @@ void btpan_pairing_answer(bool yes);
 /* The addresses of the link, in the record of a Wi-Fi connection (the name is the
  * phone's, the signal 0). Returns false unless the state is BTPAN_UP. */
 bool btpan_info(wifi_info_t *info);
+
+#else
+
+/* The Pico W build has no Bluetooth tethering: the calls are there and do nothing. */
+static inline void btpan_init(void) {}
+static inline int  btpan_start(const uint8_t address[6], const char *name) { (void)address; (void)name; return 1; }
+static inline void btpan_stop(void) {}
+static inline int  btpan_state(void) { return BTPAN_IDLE; }
+static inline const char *btpan_message(void) { return ""; }
+static inline bool btpan_pairing_request(uint32_t *number) { (void)number; return false; }
+static inline void btpan_pairing_answer(bool yes) { (void)yes; }
+static inline bool btpan_info(wifi_info_t *info) { memset(info, 0, sizeof *info); return false; }
+
+#endif /* CHIP_BT_TETHER */
 
 #endif /* BTPAN_H */

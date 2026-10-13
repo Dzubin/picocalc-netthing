@@ -72,8 +72,6 @@ add_executable(picocalc-netthing
     dnsquery.c
     srvtools.c
     usbnet.c
-    btpan.c
-    btpanui.c
     usbnet_desc.c
     ${PICO_TINYUSB_PATH}/lib/networking/rndis_reports.c
     lanscan.c
@@ -144,13 +142,18 @@ target_link_libraries(picocalc-netthing
     pico_btstack_ble
     pico_btstack_classic
     pico_btstack_cyw43
-    pico_btstack_bnep_lwip
     tinyusb_device
     pico_unique_id
     pico_rand
     pico_lwip_mbedtls
     pico_mbedtls
 )
+
+# Bluetooth tethering is left out of the Pico W build (chip_limits.h): too little RAM
+if(NOT PICO_PLATFORM STREQUAL "rp2040")
+    target_sources(picocalc-netthing PRIVATE btpan.c btpanui.c)
+    target_link_libraries(picocalc-netthing pico_btstack_bnep_lwip)
+endif()
 
 # The chip is part of every output file name (netthing-RP2350.uf2, and the matching
 # .elf/.bin/.hex), so a downloaded file always says which chip it was built for.

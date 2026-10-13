@@ -438,7 +438,7 @@ The top line of every screen says how it is connected.
     selected. If it does appear, System Settings, General, Sharing, Internet Sharing shares the internet with it.
 
   Tell the author if one of these works or needs a change in the program (for example a different USB configuration order).
-- **Bluetooth tethering (first version, written but not yet tried on a phone):** the PicoCalc joins the phone's shared connection as a
+- **Bluetooth tethering (first version, written but not yet tried on a phone; Pico 2 W only, not in the Pico W build):** the PicoCalc joins the phone's shared connection as a
   Bluetooth PAN user (BNEP), gets an address from the phone and runs the LAN tools over it. Steps:
 
   1. On the phone switch Bluetooth on and **Bluetooth tethering** on (Android: Settings, Network & internet, Hotspot & tethering,
@@ -501,7 +501,9 @@ The same program builds for the older Pico W, as `netthing-RP2040.uf2`. That chi
 so this build has smaller limits: the https certificate list holds about 15 roots (the first ones of `CA.PEM`; the rest are
 ignored), the Bluetooth device list holds 32 devices, and the network buffers are smaller, so very large web pages may be slower.
 The tools for the Windows test server are left out of this build (they took about 6.5 KB of program space and 5.8 KB of RAM), so the
-LAN tools menu has no `V`, and the certificate tool copies files in pieces of 512 bytes instead of 2048 (6 KB less RAM, a little slower). Everything else is the same. It has been compiled but **not run on real hardware**: its author has only a Pico 2 W.
+LAN tools menu has no `V`, and the certificate tool copies files in pieces of 512 bytes instead of 2048 (6 KB less RAM, a little slower). **Bluetooth tethering is not in
+this build** (it needs 11 KB of RAM that the Pico W does not have to spare); the Bluetooth scan, with its Classic area, works, and `Enter` on a
+phone says so. Everything else is the same. It has been compiled but **not run on real hardware**: its author has only a Pico 2 W.
 
 ```bash
 cmake -B build-rp2040 -G Ninja -DPICO_BOARD=pico_w

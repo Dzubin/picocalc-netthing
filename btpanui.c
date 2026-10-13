@@ -4,6 +4,10 @@
  *
  * Author: Thomas Dzubin
  */
+#include "chip_limits.h"
+
+#if CHIP_BT_TETHER
+
 #include <stdio.h>
 #include <string.h>
 
@@ -81,3 +85,5 @@ bool bt_pan_connect_screen(const bt_device_t *device)
         plat_sleep_ms(POLL_MS);
     }
 }
+
+#endif /* CHIP_BT_TETHER */

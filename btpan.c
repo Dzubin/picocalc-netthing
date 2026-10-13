@@ -9,6 +9,10 @@
  *
  * Author: Thomas Dzubin
  */
+#include "chip_limits.h"
+
+#if CHIP_BT_TETHER
+
 #include <stdio.h>
 #include <string.h>
 
@@ -348,3 +352,5 @@ bool btpan_info(wifi_info_t *info)
     memcpy(info->mac, netif->hwaddr, 6);
     return true;
 }
+
+#endif /* CHIP_BT_TETHER */

@@ -21,6 +21,7 @@ the version here matches the `VERSION` define in `netthing_const.h`.
   Classic list, `T` tracker alert, `X` crowding report, `P` pause, `R` empty the list, `W` or `ESC` back.
 
 ### Added
+- The Pico W (RP2040) build leaves out Bluetooth tethering (11 KB of RAM and 17 KB of program space saved); `CHIP_BT_TETHER` in `chip_limits.h`.
 - Leaving a network is done politely: a DHCP release and a proper disassociation (Wi-Fi), a closed adapter (USB) or a closed BNEP link (Bluetooth),
   with `DISCONNECTING...` shown meanwhile. This also happens on `~` (BOOTSEL) and when leaving for the loader.
 - Bluetooth tethering (first version, not yet tried on a phone): `Enter` on a Classic phone in the Bluetooth scan pairs (a code to confirm), opens a

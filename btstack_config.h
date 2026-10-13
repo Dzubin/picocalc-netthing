@@ -31,7 +31,11 @@
 
 /* buffers and table sizes */
 #define HCI_ACL_CHUNK_SIZE_ALIGNMENT 4
-#define HCI_ACL_PAYLOAD_SIZE (1691 + 4)
+#ifdef PICO_RP2040
+#define HCI_ACL_PAYLOAD_SIZE (255 + 4)            /* no tethering on the Pico W: the small buffers do */
+#else
+#define HCI_ACL_PAYLOAD_SIZE (1691 + 4)           /* Bluetooth tethering needs a 1691 byte frame */
+#endif
 #define HCI_OUTGOING_PRE_BUFFER_SIZE 4
 #define MAX_NR_AVDTP_CONNECTIONS 1
 #define MAX_NR_AVDTP_STREAM_ENDPOINTS 1

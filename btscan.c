@@ -337,6 +337,7 @@ int tool_bt_nearby(void)
             exit_code = key >= 'a' ? key - 'a' + 'A' : key;
             break;
         } else if (key == KEY_ENTER || key == KEY_RETURN) {
+#if CHIP_BT_TETHER
             if (le_count + classic_count > 0 && chosen >= le_count) {
                 pan_target = *device_at(chosen);
                 exit_code = 'P';
@@ -344,6 +345,10 @@ int tool_bt_nearby(void)
             }
             if (le_count + classic_count > 0)
                 notice(BTX_ROW_MESSAGE, BTX_NO_TETHER, COL_YELLOW);
+#else
+            if (le_count + classic_count > 0)
+                notice(BTX_ROW_MESSAGE, BTX_NO_TETHER_BUILD, COL_YELLOW);
+#endif
             redraw = true;
         } else if (key == 'r' || key == 'R') {
             bt_devices_clear();
