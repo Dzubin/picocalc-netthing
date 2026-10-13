@@ -16,6 +16,7 @@
 
 #include "platform.h"
 #include "wifi.h"
+#include "link.h"
 #include "net.h"
 #include "dnsquery.h"
 #include "ui.h"
@@ -269,7 +270,7 @@ void tool_dns_check(void)
 
     memset(servers, 0, sizeof servers);
     servers[0].label = "ROUTER";
-    if (wifi_info_get(&info) && info.dns[0] != '\0' && strcmp(info.dns, "0.0.0.0") != 0) {
+    if (link_info_get(&info) && info.dns[0] != '\0' && strcmp(info.dns, "0.0.0.0") != 0) {
         snprintf(servers[0].addr, sizeof servers[0].addr, "%s", info.dns);
         servers[0].used = true;
     }

@@ -71,6 +71,8 @@ add_executable(picocalc-netthing
     dnscheck.c
     dnsquery.c
     srvtools.c
+    usbnet.c
+    usbnet_desc.c
     lanscan.c
     portlist.c
     pemselect.c
@@ -138,6 +140,8 @@ target_link_libraries(picocalc-netthing
     pico_btstack_ble
     pico_btstack_classic
     pico_btstack_cyw43
+    tinyusb_device
+    pico_unique_id
     pico_rand
     pico_lwip_mbedtls
     pico_mbedtls

@@ -58,6 +58,7 @@
 #include "gfx.h"          /* the strip of the signal history                  */
 #include "tools.h"        /* ping, name lookup, test server, the clock        */
 #include "link.h"         /* how the LAN is reached                           */
+#include "usbnet.h"       /* IP over USB                                      */
 #include "netthing_const.h"   /* every constant and screen position */
 
 /* ===================================================================== */
@@ -75,6 +76,8 @@ static bool saved_store(void);
 
 static void splash_screen(void);
 static int  scan_screen(void);
+static int  usb_connect(void);
+static bool leave_current_link(void);
 static void draw_scan_screen(unsigned top, unsigned chosen);
 static void draw_heading(void);
 static void draw_ap_row(unsigned slot, unsigned index, bool chosen);
@@ -132,13 +135,16 @@ int main(void)
 
         uint8_t key = wait_any_key();
         if (key == KEY_ESC || key == 'q' || key == 'Q') {
-            if (wifi_connected() && !confirm(CONFIRM_LEAVE, CONFIRM_LEAVE_NOTE))
+            if (link_kind() != LINK_NONE && !confirm(CONFIRM_LEAVE, CONFIRM_LEAVE_NOTE))
                 continue;     /* an ESC too many: stay in the program, still connected */
             go_loader();      /* does not return */
         }
         if (key == 'u' || key == 'U') {
-            notice(SPLASH_ROW_USB + 2, SPLASH_USB_NOT_READY, COL_YELLOW);
-            continue;
+            int next = usb_connect();
+
+            if (next == MODE_NONE)
+                continue;             /* given up: back to the title screen */
+            mode = next;
         }
         /* The program is in one of three modes. ESC in a mode comes back here, and a key
          * then goes on in the mode that was left (the Wi-Fi scan the first time). */
@@ -406,6 +412,50 @@ static void pause_for_link(void)
     } else if (auto_paused) {
         paused = false;
         auto_paused = false;
+    }
+}
+
+/* IP over USB: start the adapter and wait for the PC to give an address. Returns
+ * the mode to go to (the LAN tools) when the link is up, or MODE_NONE if the
+ * operator gave up. */
+static int usb_connect(void)
+{
+    static const char *const lines[] = USBSCREEN_LINES;
+    unsigned i;
+    int last = -1;
+
+    if (!leave_current_link())
+        return MODE_NONE;
+    screen_clear();
+    put_row(USBSCREEN_ROW_HEADING, "IP OVER USB", COL_CYAN);
+    put_row(USBSCREEN_ROW_STATUS, "STARTING...", COL_YELLOW);
+    if (wifi_start() != 0 || usbnet_start() != 0) {      /* the chip's driver also runs the USB network */
+        clear_row(USBSCREEN_ROW_STATUS);
+        put_row(USBSCREEN_ROW_STATUS, USBSCREEN_FAILED, COL_YELLOW);
+        pause_ms(NOTICE_MS * 2);
+        return MODE_NONE;
+    }
+    for (i = 0; lines[i] != NULL; i++)
+        put_at(MENU_COL, USBSCREEN_ROW_FIRST + (int)i, lines[i], COL_WHITE);
+    put_row(TOOL_ROW_HELP, USBSCREEN_HELP, COL_WHITE);
+    drain_keys();
+    for (;;) {
+        int now_state = usbnet_state();
+
+        if (poll_key() == KEY_ESC) {
+            usbnet_stop();
+            return MODE_NONE;
+        }
+        if (now_state == USBNET_UP) {
+            screen_clear();
+            return MODE_LAN;
+        }
+        if (now_state != last) {
+            last = now_state;
+            clear_row(USBSCREEN_ROW_STATUS);
+            put_row(USBSCREEN_ROW_STATUS, now_state == USBNET_LINK ? USBSCREEN_WAIT_DHCP : USBSCREEN_WAIT_PC, COL_YELLOW);
+        }
+        plat_sleep_ms(POLL_MS);
     }
 }
 

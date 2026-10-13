@@ -51,7 +51,15 @@
 #define SPLASH_ROW_EXIT     23
 #define SPLASH_ROW_USB      25
 #define SPLASH_USB_LINE     "U = connect with IP over USB"
-#define SPLASH_USB_NOT_READY "USB NETWORKING IS NOT READY YET"
+#define USBSCREEN_ROW_HEADING 3
+#define USBSCREEN_ROW_FIRST   6
+#define USBSCREEN_ROW_STATUS  18
+#define USBSCREEN_HELP        "ESC = CANCEL"
+#define USBSCREEN_LINES { "1  PLUG THE PICOCALC INTO THE PC", "2  OPEN THE PC'S NETWORK ADAPTERS AND", \
+                          "   SHARE ITS INTERNET WITH THE NEW", "   ADAPTER (INTERNET CONNECTION", "   SHARING ON WINDOWS)", NULL }
+#define USBSCREEN_WAIT_PC    "WAITING FOR THE PC TO SET IT UP"
+#define USBSCREEN_WAIT_DHCP  "WAITING FOR AN ADDRESS (DHCP)"
+#define USBSCREEN_FAILED     "THE USB PART WOULD NOT START"
 #define SPLASH_TAGLINE_1    "Wifi and Bluetooth network tools"     /* 40 columns hold only 40 characters, so two lines */
 #define SPLASH_TAGLINE_2    "for troubleshooting"
 
@@ -96,7 +104,7 @@
 #define CONFIRM_KEYS_LINE   "Y = YES   ANY OTHER KEY = NO"
 #define CONFIRM_DISCONNECT  "DISCONNECT FROM THE NETWORK?"
 #define CONFIRM_LEAVE       "LEAVE THE PROGRAM?"
-#define CONFIRM_LEAVE_NOTE  "THE WI-FI CONNECTION WILL BE LOST."
+#define CONFIRM_LEAVE_NOTE  "THE CONNECTION WILL BE LOST."
 
 /* Signal bars: five cells of BAR_FULL or BAR_EMPTY. A signal at or above
  * the n-th limit (strongest first) earns that many bars. */

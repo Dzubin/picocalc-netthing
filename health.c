@@ -15,6 +15,7 @@
 
 #include "platform.h"
 #include "wifi.h"
+#include "link.h"
 #include "net.h"
 #include "dnsquery.h"
 #include "gfx.h"
@@ -149,14 +150,18 @@ void tool_health(void)
             set(n, LIGHT_PENDING, n == 0 ? waiting : "");
         drain_keys();
 
-        if (!wifi_info_get(&info)) {
+        if (!link_info_get(&info)) {
             set(CHECK_SIGNAL, LIGHT_RED, "NOT CONNECTED");
             put_at(1, HEALTH_ROW_SUMMARY, "THE PICOCALC IS NOT CONNECTED.", COL_YELLOW);
             goto wait_key;
         }
         bars = bars_for(info.rssi);
-        snprintf(text, sizeof text, "%d DBM, %u OF %u BARS", (int)info.rssi, bars, (unsigned)BAR_CELLS);
-        set(CHECK_SIGNAL, bars >= BARS_GOOD ? LIGHT_GREEN : (bars >= BARS_FAIR ? LIGHT_YELLOW : LIGHT_RED), text);
+        if (link_kind() == LINK_USB) {
+            set(CHECK_SIGNAL, LIGHT_GREEN, "USB LINK UP");
+        } else {
+            snprintf(text, sizeof text, "%d DBM, %u OF %u BARS", (int)info.rssi, bars, (unsigned)BAR_CELLS);
+            set(CHECK_SIGNAL, bars >= BARS_GOOD ? LIGHT_GREEN : (bars >= BARS_FAIR ? LIGHT_YELLOW : LIGHT_RED), text);
+        }
 
         if (info.gateway[0] == '\0' || strcmp(info.gateway, "0.0.0.0") == 0) {
             set(CHECK_ROUTER, LIGHT_YELLOW, "NO ROUTER ADDRESS WAS GIVEN");

@@ -12,6 +12,7 @@
 
 #include "platform.h"
 #include "wifi.h"
+#include "link.h"
 #include "net.h"
 #include "storage.h"
 #include "settings.h"
@@ -326,7 +327,7 @@ void tool_ping(void)
 
     tools_settings_load();
     snprintf(host, sizeof host, "%s", settings.ping);
-    if (host[0] == '\0' && wifi_info_get(&info))
+    if (host[0] == '\0' && link_info_get(&info))
         snprintf(host, sizeof host, "%s", info.gateway);
     if (!ask_text("PING", "", "HOST OR ADDRESS", host, TOOL_HOST_MAX, 1, false, false))
         return;
@@ -340,7 +341,7 @@ void tool_ping_gateway(void)
 {
     wifi_info_t info;
 
-    if (!wifi_info_get(&info) || info.gateway[0] == '\0' || strcmp(info.gateway, "0.0.0.0") == 0) {
+    if (!link_info_get(&info) || info.gateway[0] == '\0' || strcmp(info.gateway, "0.0.0.0") == 0) {
         tools_screen("PING THE ROUTER", "");
         tools_out_line("NO GATEWAY ADDRESS YET", COL_YELLOW);
         tools_finish();

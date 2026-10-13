@@ -21,6 +21,9 @@ the version here matches the `VERSION` define in `netthing_const.h`.
   Classic list, `T` tracker alert, `X` crowding report, `P` pause, `R` empty the list, `W` or `ESC` back.
 
 ### Added
+- IP over USB (first version, not yet tried on real hardware): `U` on the title screen makes the PicoCalc a USB network adapter (CDC NCM) that
+  gets its address from the PC's shared connection (Internet Connection Sharing). The top line shows `USB <address>` and the LAN tools run over it.
+  The link layer (`link.c`) gives the tools the addresses of whichever link is up, and a second connection asks to give up the first.
 - `L` opens the LAN tools menu from the Wi-Fi scan list and the Bluetooth screen when a link is up, and says so when none is. A new
   connection first asks to give up the one that is up (one way to the LAN at a time).
 - On the nearby devices list `Enter` is the connect key and `D` the details; the cursor goes on from the Low Energy list into the Classic

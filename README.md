@@ -85,13 +85,18 @@ tools/make_ca_pem.py        makes a CA.PEM from the Mozilla root list on a PC (s
 tools/make_ca_header.py     turns sdcard/netthing/CA.PEM into ca_builtin.h
 ca_builtin.h                the roots built into the program (generated)
 fetch.h                     what the certificate tool uses of fetch.c
-menu.c                      the tools menu
+menu.c                      the Wi-Fi tools and LAN tools menus
+modes.h                     the three modes (Wi-Fi scan, Bluetooth scan, LAN tools) and the title screen
+link.h, link.c, _const.h    how the LAN is reached (Wi-Fi, USB, later Bluetooth): the link line, its addresses, giving it up
+usbnet.h, usbnet.c, _const.h   IP over USB: the PicoCalc as a USB network adapter (TinyUSB and lwIP)
+usbnet_desc.c, tusb_config.h   the USB descriptors of that adapter, and the TinyUSB settings
+tether.h, tether.c, _const.h   Bluetooth tether slots (kept for the Bluetooth tethering work, not used yet)
 pinglive.c                  continuous ping with a graph, the signal and a CSV log
 trace.c                     trace route
 ports.c                     port check
 bt.h, bt_pico.c, _const.h   Bluetooth as the tools see it: power, scans, the table of devices, reading one device (BTstack)
 btdecode.h, .c, _const.h    what a device announces made readable: kind, maker, services, trackers (portable)
-btui.h, btmenu.c            the Bluetooth menu (switches the radio on and off)
+btui.h, btmenu.c            the Bluetooth mode (switches the radio on and off, runs the Bluetooth tools)
 btscan.c                    the Bluetooth screen: Low Energy and Classic devices, and the details of one
 btfind.c, meter.h, meter.c  the signal meter picture, used for Wi-Fi and for finding one Bluetooth device
 btinspect.c, bttrack.c, btcrowd.c   read a device; tracker alert; 2.4 GHz crowding report
@@ -128,7 +133,7 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | Key | Where | Does |
 |---|---|---|
 | any key | splash | starts the radio and the scan |
-| `U` | splash | IP over USB (not built yet: it says so) |
+| `U` | splash | connect to the LAN with IP over USB (work in progress: see below) |
 | `ESC` or `Q` | splash | leaves for the PicoCalc UF2 Loader menu, after a `LEAVE THE PROGRAM? Y/N` question if Wi-Fi is connected (it asks the loader for its menu through the watchdog scratch registers; with no loader installed the program just restarts) |
 | `Up`, `Down` | scan list | choose an access point (name green: saved name and BSSID; yellow: only one of the two saved) |
 | `Enter` | scan list | connect to the chosen access point (saved ones need no typing); if a connection is up it asks first, because only one link to the LAN is used at a time |
@@ -377,6 +382,24 @@ no connection any more). Going to the title screen does not drop the connection,
 the title screen leaves the program. A scan that was paused starts again when you come back to it from another screen, except that
 the Wi-Fi scan stays paused while a connection is up.
 
+## Reaching the LAN: Wi-Fi, USB and Bluetooth (work in progress)
+
+The program is first of all a wireless scanning tool (the Wi-Fi scan and the Bluetooth scan work without any connection). To use the LAN
+tools it must be connected to a network, by **one** of these ways at a time; connecting a second way asks first to give up the one that is up.
+The top line of every screen says how it is connected.
+
+- **Wi-Fi:** `Enter` on a network in the Wi-Fi scan. Done and working.
+- **IP over USB (new, written but not yet tried on real hardware):** press `U` on the title screen. The PicoCalc's USB port then shows up on a
+  PC as a network adapter (CDC NCM; Windows 10 and 11 load their own driver for it, and Linux and macOS do too). Plug the PicoCalc into the
+  PC with a USB data cable, and share the PC's internet connection with the new adapter; on Windows: Settings, Network & Internet, Advanced
+  network settings, More network adapter options, right-click the adapter that has the internet (Wi-Fi or Ethernet), Properties, Sharing,
+  tick *Allow other network users to connect*, and choose the new adapter (its name is *Ethernet* and a number; unplug and plug the PicoCalc
+  to see which one appears). Windows then gives the adapter 192.168.137.1 and its DHCP server gives the PicoCalc an address; the top line
+  of the screen shows `USB 192.168.137.x` and the LAN tools open. `ESC` while it waits cancels. The PC's firewall may block pings to it.
+  USB networking uses the wireless chip's driver for the network stack, so it needs a Pico W or Pico 2 W like everything else.
+- **Bluetooth tethering (in progress, not working yet):** the Bluetooth scan already lists the Classic phones around (the Classic area); `Enter`
+  on one is meant to connect to its shared connection (the PAN profile) and for now only says so. The code in `tether.c` is the start of it.
+
 ## Saved networks
 
 After a password you typed has worked, the program asks `SAVE THIS NETWORK? Y/N`. The names and
@@ -469,6 +492,8 @@ the TCP/IP stack (lwIP) and mbedTLS that come with it have their own licences. T
 which comes with the SDK in `lib/btstack` and is not part of this project. Its licence allows use with Raspberry Pi's wireless
 products (Pico W, Pico 2 W) under the terms in the SDK's `src/rp2_common/pico_btstack/LICENSE.RP` and `lib/btstack/LICENSE` (read them,
 they limit use to those products and to non-commercial use); this project is for the Pico 2 W and is free.
+The USB network adapter uses **TinyUSB** (by Ha Thach, MIT licence), which also comes with the SDK, and `usbnet_desc.c` is adapted from its
+`net_lwip_webserver` example (its licence text is at the top of that file).
 
 The vendored copy is unchanged except for these fixes, all in `drivers/`:
 

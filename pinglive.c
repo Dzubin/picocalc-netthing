@@ -15,6 +15,7 @@
 
 #include "platform.h"
 #include "wifi.h"
+#include "link.h"
 #include "net.h"
 #include "storage.h"
 #include "ui.h"
@@ -162,7 +163,10 @@ static void draw_figures(const wifi_info_t *info, bool have_info)
     unsigned answered = sent - lost, bars;
 
     clear_row(LIVE_ROW_SIGNAL);
-    if (have_info) {
+    if (have_info && link_kind() == LINK_USB) {
+        put_at(1, LIVE_ROW_SIGNAL, "LINK", COL_CYAN);
+        put_at(9, LIVE_ROW_SIGNAL, "USB", COL_GREEN);
+    } else if (have_info) {
         unsigned i;
 
         bars = bars_for(info->rssi);
@@ -224,7 +228,7 @@ void tool_ping_live(void)
 
     tools_settings_load();
     snprintf(host, sizeof host, "%s", tools_settings()->ping);
-    if (host[0] == '\0' && wifi_info_get(&info))
+    if (host[0] == '\0' && link_info_get(&info))
         snprintf(host, sizeof host, "%s", info.gateway);
     if (!ask_text("CONTINUOUS PING", "", "HOST OR ADDRESS", host, TOOL_HOST_MAX, 1, false, false))
         return;
@@ -264,7 +268,7 @@ void tool_ping_live(void)
         if (stop)
             break;
         add_result(state == NET_DONE, ms);
-        have_info = wifi_info_get(&info);
+        have_info = link_info_get(&info);
         if (log_on) {
             snprintf(line, sizeof line, "%u,%u,%d,%d,%u\r\n", sent, (unsigned)((started - began) / 1000u),
                      state == NET_DONE ? (int)ms : -1, have_info ? (int)info.rssi : 0,
