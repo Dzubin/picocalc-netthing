@@ -438,7 +438,7 @@ The top line of every screen says how it is connected.
     selected. If it does appear, System Settings, General, Sharing, Internet Sharing shares the internet with it.
 
   Tell the author if one of these works or needs a change in the program (for example a different USB configuration order).
-- **Bluetooth tethering (first version, written but not yet tried on a phone; Pico 2 W only, not in the Pico W build):** the PicoCalc joins the phone's shared connection as a
+- **Bluetooth tethering (works with the phone it was tried on; Pico 2 W only, not in the Pico W build):** the PicoCalc joins the phone's shared connection as a
   Bluetooth PAN user (BNEP), gets an address from the phone and runs the LAN tools over it. Steps:
 
   1. On the phone switch Bluetooth on and **Bluetooth tethering** on (Android: Settings, Network & internet, Hotspot & tethering,
