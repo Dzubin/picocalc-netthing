@@ -6,6 +6,10 @@ the version here matches the `VERSION` define in `netthing_const.h`.
 
 ## [Unreleased]
 
+### Added
+- `F5` saves a screenshot of the screen as `/netthing/SCREENS/SCRNxxxx.BMP` (24-bit BMP, 320 x 320) on any screen. It takes a few seconds and then shows
+  `SAVED SCRNxxxx.BMP` for a moment at the left of the last text row, which is put back afterwards. The key is not in any on-screen help.
+
 ### Fixed
 - The Wi-Fi tools (signal meter, channel survey with its hill view, health check) can be opened with `T` on the Wi-Fi scan, without a
   connection. Since V1.10A they could only be reached from the status screen, which needs a Wi-Fi connection.

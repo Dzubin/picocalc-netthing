@@ -72,6 +72,9 @@ add_executable(picocalc-netthing
     dnsquery.c
     srvtools.c
     usbnet.c
+    bmp.c
+    screenshot.c
+    lcdread_pico.c
     usbnet_desc.c
     ${PICO_TINYUSB_PATH}/lib/networking/rndis_reports.c
     lanscan.c

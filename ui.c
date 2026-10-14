@@ -13,6 +13,7 @@
 #include "platform.h"
 #include "ui.h"
 #include "link.h"
+#include "screenshot.h"
 #include "netthing_const.h"
 
 /* ===================================================================== */
@@ -102,8 +103,13 @@ uint8_t poll_key_raw(void)
 {
     uint16_t e = key_event();
 
-    if (e && ev_state(e) == KEY_STATE_PRESSED && !is_mod_key(ev_code(e)))
+    if (e && ev_state(e) == KEY_STATE_PRESSED && !is_mod_key(ev_code(e))) {
+        if (ev_code(e) == KEY_F5) {
+            screenshot_press();     /* F5 saves the screen, on every screen */
+            return 0;
+        }
         return ev_code(e);
+    }
     return 0;
 }
 

@@ -86,6 +86,9 @@ tools/make_ca_header.py     turns sdcard/netthing/CA.PEM into ca_builtin.h
 ca_builtin.h                the roots built into the program (generated)
 fetch.h                     what the certificate tool uses of fetch.c
 menu.c                      the Wi-Fi tools and LAN tools menus
+screenshot.h, screenshot.c, _const.h   the F5 screenshot: reads the screen a row at a time and writes a BMP file
+bmp.h, bmp.c, _const.h      the BMP file header and rows of a screenshot (portable)
+lcdread.h, lcdread_pico.c, _const.h   reading pixels back off the LCD (the mirror of lcd_blit)
 modes.h                     the three modes (Wi-Fi scan, Bluetooth scan, LAN tools) and the title screen
 link.h, link.c, _const.h    how the LAN is reached (Wi-Fi, USB, later Bluetooth): the link line, its addresses, giving it up
 usbnet.h, usbnet.c, _const.h   IP over USB: the PicoCalc as a USB network adapter (TinyUSB and lwIP)
@@ -137,6 +140,7 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | `ESC` or `Q` | splash | leaves for the PicoCalc UF2 Loader menu, after a `LEAVE THE PROGRAM? Y/N` question if Wi-Fi is connected (it asks the loader for its menu through the watchdog scratch registers; with no loader installed the program just restarts) |
 | `Up`, `Down` | scan list | choose an access point (name green: saved name and BSSID; yellow: only one of the two saved) |
 | `Enter` | scan list | connect to the chosen access point (saved ones need no typing); if a connection is up it asks first, because only one link to the LAN is used at a time |
+| `F5` | any screen | save a screenshot of the screen as `/netthing/SCREENS/SCRNxxxx.BMP` on the SD card (not shown in any on-screen help) |
 | `T` | scan list | the Wi-Fi tools menu: health check, signal meter, channel survey (`V` there switches between bars and hills) |
 | `L` | scan list, Bluetooth screen | the LAN tools menu, when connected by any link; otherwise it says `NOT CONNECTED: CONNECT FIRST` |
 | `D` | scan list | details: name, BSSID, channel and frequency, signal, security, whether it is saved |
@@ -372,6 +376,7 @@ hand, and only for https.
 | `SETTINGS.TXT` | the hosts, ports, web address, time offset and scan range last used (plain text) |
 | `CA.PEM`, `CA.BAK`, `CA-WANT.TXT` | the trusted root certificates for https, the copy kept by the update, the names to keep |
 | `PINGLOG.CSV` | the log of a continuous ping, if you started one |
+| `SCREENS/` | the screenshots (`F5`): 24-bit BMP files named SCRN and four hex digits, 320 x 320 pixels, about 300 KB each |
 | `DOWNLOAD/` | the certificate update's downloads |
 
 ## Modes and the title screen
@@ -536,6 +541,7 @@ example:
 
 ```bash
 gcc -O1 -Wall -Wextra -I. tests/lan_test.c lanscan.c -o lan_test && ./lan_test
+gcc -O1 -Wall -Wextra -I. tests/bmp_test.c bmp.c -o bmp_test && ./bmp_test
 ```
 
 Each prints PASS or FAIL for every check and exits with the number of failures.

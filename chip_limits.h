@@ -16,6 +16,7 @@
 #define CHIP_BT_DEVICES_MAX  32
 #define CHIP_BT_TETHER       0              /* no Bluetooth tethering: the RAM is needed elsewhere */
 #define CHIP_SERVER_TOOLS    0              /* no Windows test server tools: the RAM is needed elsewhere */
+#define CHIP_SHOT_ROWS       8              /* a screenshot is written 8 rows at a time (8 KB of RAM) */
 #define CHIP_CERTS_CHUNK     512            /* the certificate tool copies files in smaller pieces (slower, 6 KB less RAM) */
 #else
 #define CHIP_MEM_SIZE        (128 * 1024)
@@ -24,6 +25,7 @@
 #define CHIP_BT_DEVICES_MAX  64
 #define CHIP_BT_TETHER       1
 #define CHIP_SERVER_TOOLS    1
+#define CHIP_SHOT_ROWS       16
 #define CHIP_CERTS_CHUNK     2048
 #endif
 
