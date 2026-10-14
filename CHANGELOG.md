@@ -6,6 +6,10 @@ the version here matches the `VERSION` define in `netthing_const.h`.
 
 ## [Unreleased]
 
+### Fixed
+- The Wi-Fi tools (signal meter, channel survey with its hill view, health check) can be opened with `T` on the Wi-Fi scan, without a
+  connection. Since V1.10A they could only be reached from the status screen, which needs a Wi-Fi connection.
+
 ## [V1.10A]
 
 ### Added

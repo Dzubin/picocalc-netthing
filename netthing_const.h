@@ -80,7 +80,7 @@
 #define SCAN_ROW_HELP       30      /* two help lines                    */
 #define SCAN_ROW_HELP_2     31
 #define SCAN_ROW_PAUSE      28      /* "P=PAUSE" on a line of its own */
-#define SCAN_HELP_1         "ENTER=CONNECT D=DETAILS B=BLUETOOTH"
+#define SCAN_HELP_1         "ENTER=CONNECT D=DETAILS T=TOOLS B=BT"
 #define SCAN_HELP_2         "M=NAME S=SAVED I=STATUS L=LAN ESC=TITLE"
 
 #define SCAN_COL_MARKER      0

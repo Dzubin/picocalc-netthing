@@ -612,6 +612,11 @@ static int scan_screen(void)
             saved_screen();
             resume_scanning();
             redraw = true;
+        } else if (key == 't' || key == 'T') {
+            scan_leave();
+            tool_menu();                    /* the Wi-Fi tools: the channel survey needs no connection */
+            resume_scanning();
+            redraw = true;
         } else if (key == 'l' || key == 'L') {
             if (link_kind() == LINK_NONE) {
                 notice(SCAN_ROW_MESSAGE, LINK_NEEDED, COL_YELLOW);

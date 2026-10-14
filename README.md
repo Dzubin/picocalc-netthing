@@ -27,10 +27,11 @@ After the title screen the program is always in one of three **modes**, and the 
   setting the clock from an NTP time server, an update of the https certificates, a scan of the local network with a map of its devices, a
   port check, and, in a menu of their own because most people will not have the server, the tools for the Windows test server.
 
-`L` opens the LAN tools from either scan screen, `B` and `W` move between the scans, and `ESC` goes back to the title screen without dropping
+`T` on the Wi-Fi scan opens the **Wi-Fi tools** (signal meter, channel survey with its bar and hill views on `V`, and the health check), with or
+without a connection; `L` opens the LAN tools from either scan screen, `B` and `W` move between the scans, and `ESC` goes back to the title screen without dropping
 the connection; any key there carries on in the mode you left. Only one connection is used at a time. From the Wi-Fi scan the **status
-screen** (`I`) shows the addresses, a live signal strength and a strip of the signal over the last few minutes, and `T` there opens the
-**Wi-Fi tools**: a signal meter, a channel survey (for finding the best spot and the quietest channel) and the health check.
+screen** (`I`, when connected) shows the addresses, a live signal strength and a strip of the signal over the last few minutes. The Wi-Fi tools
+are a signal meter, a channel survey (for finding the best spot and the quietest channel) and the health check.
 
 Most tools draw a picture as well as the text (see "Pictures" below).
 
@@ -136,6 +137,7 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | `ESC` or `Q` | splash | leaves for the PicoCalc UF2 Loader menu, after a `LEAVE THE PROGRAM? Y/N` question if Wi-Fi is connected (it asks the loader for its menu through the watchdog scratch registers; with no loader installed the program just restarts) |
 | `Up`, `Down` | scan list | choose an access point (name green: saved name and BSSID; yellow: only one of the two saved) |
 | `Enter` | scan list | connect to the chosen access point (saved ones need no typing); if a connection is up it asks first, because only one link to the LAN is used at a time |
+| `T` | scan list | the Wi-Fi tools menu: health check, signal meter, channel survey (`V` there switches between bars and hills) |
 | `L` | scan list, Bluetooth screen | the LAN tools menu, when connected by any link; otherwise it says `NOT CONNECTED: CONNECT FIRST` |
 | `D` | scan list | details: name, BSSID, channel and frequency, signal, security, whether it is saved |
 | `C` | details | connect to the access point |
