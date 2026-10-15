@@ -12,7 +12,7 @@
 
 /* Shown on the splash screen; the firmware build reads it from this line, so
  * keep it in the form  #define VERSION "V0.01A"  on one line. */
-#define VERSION "V1.10A"
+#define VERSION "V1.12A"
 
 /* ------------------------------------------------------------------ */
 /*  Colours (full-strength only: dim greys are hard to read on the LCD) */
@@ -80,7 +80,13 @@
 #define SCAN_ROW_HELP       30      /* two help lines                    */
 #define SCAN_ROW_HELP_2     31
 #define SCAN_ROW_PAUSE      28      /* "P=PAUSE" on a line of its own */
-#define SCAN_HELP_1         "ENTER=CONNECT D=DETAILS T=TOOLS B=BT"
+#define SCAN_RETRY_MS       500     /* wait before the second try at starting a scan */
+#define SCAN_INTERVAL_MIN_MS    500     /* time between list updates on the two scan screens (left and right arrows) */
+#define SCAN_INTERVAL_MAX_MS  10000
+#define SCAN_INTERVAL_STEP_MS   500
+#define SCAN_INTERVAL_DEFAULT_MS 1000
+#define SCAN_PAUSE_LINE    "P=PAUSE  B=BLUETOOTH SCAN"
+#define SCAN_HELP_1         "ENTER=CONNECT D=DETAILS T=TOOLS"
 #define SCAN_HELP_2         "M=NAME S=SAVED I=STATUS L=LAN ESC=TITLE"
 
 #define SCAN_COL_MARKER      0
@@ -130,7 +136,12 @@
 #define DETAIL_ROW_HELP     29
 #define DETAIL_COL_LABEL     2
 #define DETAIL_COL_VALUE    12
-#define DETAIL_HELP         "C CONNECT   ESC BACK"
+#define DETAIL_ROW_MESSAGE  27      /* whether it can be connected to */
+#define DETAIL_HELP         "ENTER OR C CONNECT   ESC BACK"
+#define DETAIL_HELP_BACK    "ESC BACK"
+#define DETAIL_CAN          "CAN CONNECT TO IT: ENTER OR C"
+#define DETAIL_JOINED       "CONNECTED TO IT: ENTER OR C SHOWS IT"
+#define DETAIL_NO_WEP       "CANNOT CONNECT: WEP IS NOT SUPPORTED"
 #define DETAIL_SAVED_YES    "YES (PASSWORD ON THE SD CARD)"
 #define DETAIL_SAVED_NO     "NO"
 #define DETAIL_SAVED_NO_SD  "NO (NO SD CARD)"
@@ -402,7 +413,6 @@
 #define BTL_COL_BARS         18
 #define BTL_COL_DBM          24
 #define BTL_COL_KIND         29
-#define BTL_REFRESH_MS      500
 #define BTL_STALE_MS      15000     /* heard longer ago than this: shown in yellow */
 #define BTL_HIDE_MS       60000     /* ... and longer than this: not shown */
 #define BTC_SECONDS           8     /* one Classic inquiry */
@@ -412,7 +422,9 @@
 #define BTX_LE_ROWS          20     /* Low Energy rows when the Classic area is shown */
 #define BTX_ROW_HEADING      22
 #define BTX_ROW_FIRST        23
-#define BTX_ROW_PAUSE        28     /* "P=PAUSE" on a line of its own */
+#define BTX_ROW_PAUSE        28     /* "P=PAUSE  W=WIFI" on a line of its own */
+#define BTX_PAUSE_LINE       "P=PAUSE  W=WIFI SCAN"
+#define BTX_HELP_3           "R=RESET ESC=TITLE"
 #define BTX_ROW_HELP         29     /* three lines */
 #define BTX_ROWS              4     /* Classic devices shown, strongest first */
 #define BTX_WINDOW_MS      5000     /* one Low Energy scan window */
@@ -424,13 +436,16 @@
 #define BTPANUI_ROW_STATUS   12
 #define BTPANUI_ROW_PAIR     15
 #define BTPANUI_NOTE        "TURN ON BLUETOOTH TETHERING ON THE PHONE"
-#define BTX_NO_TETHER       "ONLY CLASSIC DEVICES CAN TETHER"
-#define BTX_NO_TETHER_BUILD "NO TETHERING IN THE PICO W BUILD"
 #define BTX_NOT_READY       "TETHERING IS NOT READY YET"
 #define BTD_ROW_FIRST         5     /* the details of a device */
 #define BTD_ROW_LAST         26
 #define BTD_ROW_NOTE         27
+#define BTD_ROW_TETHER       29     /* whether the device can be tethered to */
 #define BTD_ROW_HELP         30
+#define BTD_TETHER_YES      "CAN TETHER TO IT: ENTER OR T"
+#define BTD_TETHER_NO_LE    "CANNOT TETHER: ONLY CLASSIC DEVICES CAN"
+#define BTD_TETHER_NO_BUILD "CANNOT TETHER: NOT IN THE PICO W BUILD"
+#define BTD_HELP_TETHER     "T=TETHER ESC=BACK"
 #define BTD_COL_LABEL         2
 #define BTD_COL_VALUE        11
 #define BTF_TREND             3     /* readings averaged for WARMER and COLDER (twice this many are kept) */
@@ -441,19 +456,23 @@
 #define BTI_BATTERY_LOW      15
 #define BTI_BATTERY_W       150     /* pixels */
 #define BTT_ROW_HEADING       1
-#define BTT_ROW_FIRST         2
-#define BTT_ROWS             14
+#define BTT_ROW_NEAR_HEAD     3     /* tags with a green or yellow signal */
+#define BTT_ROW_NEAR_FIRST    4
+#define BTT_NEAR_ROWS         8
+#define BTT_ROW_FAR_HEAD     13     /* tags with a red signal */
+#define BTT_ROW_FAR_FIRST    14
+#define BTT_FAR_ROWS          5
 #define BTT_ROW_NOTE         22
 #define BTT_ROW_HELP         30
-#define BTT_REFRESH_MS     1000
 #define BTT_HIDE_MS      180000     /* a tag not heard for this long is dropped from the list */
 #define BTT_STALE_MS      20000
 #define BTT_WARN_S          300     /* in range this many seconds: yellow, WATCH */
 #define BTT_ALERT_S         900     /* ... and this many: red */
-#define BTT_COL_BARS         13
-#define BTT_COL_DBM          19
-#define BTT_COL_TIME         24
-#define BTT_COL_FLAG         31
+#define BTT_COL_NAME          3     /* the lists are indented two columns from the headings */
+#define BTT_COL_BARS         15
+#define BTT_COL_DBM          21
+#define BTT_COL_TIME         26
+#define BTT_COL_FLAG         33
 #define BTX_SECONDS          10     /* the crowding report listens this long */
 #define BTX_CHANNELS         13
 #define BTX_REACH             2     /* channels either side that a Wi-Fi network overlaps */

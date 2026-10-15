@@ -59,6 +59,30 @@ void put_at_reverse(int col, int row, const char *str, uint16_t fg)
     lcd_set_background(COL_BG);
 }
 
+/* one setting for both scan screens, kept while the program runs */
+static unsigned scan_interval = SCAN_INTERVAL_DEFAULT_MS;
+
+unsigned scan_interval_get(void)
+{
+    return scan_interval;
+}
+
+void scan_interval_change(int steps)
+{
+    int now = (int)scan_interval + steps * SCAN_INTERVAL_STEP_MS;
+
+    if (now < SCAN_INTERVAL_MIN_MS)
+        now = SCAN_INTERVAL_MIN_MS;
+    if (now > SCAN_INTERVAL_MAX_MS)
+        now = SCAN_INTERVAL_MAX_MS;
+    scan_interval = (unsigned)now;
+}
+
+void scan_interval_text(char *out, unsigned size)
+{
+    snprintf(out, size, "%u.%uS", scan_interval / 1000u, scan_interval % 1000u / 100u);
+}
+
 /* ===================================================================== */
 /*  Keyboard helpers (raw south-bridge FIFO polling)                      */
 /* ===================================================================== */

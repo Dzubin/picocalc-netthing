@@ -29,6 +29,11 @@ void    notice(int row, const char *text, uint16_t colour);   /* up for a moment
 void go_bootsel(void);          /* reboot into BOOTSEL (USB drive) mode      */
 void go_loader(void);           /* back to the UF2 Loader menu               */
 
+/* ---- how often the scan screens update their lists --------------------- */
+unsigned scan_interval_get(void);               /* in milliseconds */
+void     scan_interval_change(int steps);       /* by SCAN_INTERVAL_STEP_MS each, within the limits */
+void     scan_interval_text(char *out, unsigned size);   /* "1.0S" */
+
 /* ---- signal bars -------------------------------------------------------- */
 unsigned bars_for(int rssi);            /* 0 to BAR_CELLS for a level in dBm */
 uint16_t bars_colour(unsigned bars);    /* green, yellow or red              */

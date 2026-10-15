@@ -62,7 +62,7 @@ static void refresh_view(void)
         size = d.classic ? &classic_count : &le_count;
         /* paired devices first, so the phone to connect to stays at the top; then the strongest signal */
         for (j = *size; j > 0 && (paired[list[j - 1]] < paired[n] ||
-                                  (paired[list[j - 1]] == paired[n] && view[list[j - 1]].rssi < d.rssi)); j--)
+                                  (paired[list[j - 1]] == paired[n] && view[list[j - 1]].rssi_sort < d.rssi_sort)); j--)
             list[j] = list[j - 1];
         list[j] = n;
         (*size)++;
@@ -147,7 +147,16 @@ static void show_details(const bt_device_t *d)
         put_at(BTD_COL_LABEL, BTD_ROW_NOTE, "A FIND MY TAG, OR AN APPLE DEVICE", COL_YELLOW);
         put_at(BTD_COL_LABEL, BTD_ROW_NOTE + 1, "AWAY FROM ITS OWNER.", COL_YELLOW);
     }
+#if CHIP_BT_TETHER
+    if (d->classic)
+        put_row(BTD_ROW_TETHER, BTD_TETHER_YES, COL_GREEN);
+    else
+        put_row(BTD_ROW_TETHER, BTD_TETHER_NO_LE, COL_YELLOW);
+    put_row(BTD_ROW_HELP, d->classic ? BTD_HELP_TETHER : "F=FIND I=READ ESC=BACK", COL_WHITE);
+#else
+    put_row(BTD_ROW_TETHER, BTD_TETHER_NO_BUILD, COL_YELLOW);
     put_row(BTD_ROW_HELP, d->classic ? "ESC=BACK" : "F=FIND I=READ ESC=BACK", COL_WHITE);
+#endif
 }
 
 /* ===================================================================== */
@@ -156,7 +165,7 @@ static void show_details(const bt_device_t *d)
 static void draw_row(int y, const bt_device_t *d, bool selected, uint32_t now, bool saved)
 {
     char line[TOOL_LINE_MAX], label[BTL_NAME_W + 1];
-    unsigned bars = bars_for(d->rssi), i;
+    unsigned bars = bars_for(d->rssi_avg), i;
     bool stale = now - d->last_ms > BTL_STALE_MS;
 
     clear_row(y);
@@ -168,7 +177,7 @@ static void draw_row(int y, const bt_device_t *d, bool selected, uint32_t now, b
         line[i] = i < bars ? BAR_FULL : BAR_EMPTY;
     line[BAR_CELLS] = '\0';
     put_at(BTL_COL_BARS, y, line, bars_colour(bars));
-    snprintf(line, sizeof line, "%4d", (int)d->rssi);
+    snprintf(line, sizeof line, "%4d", (int)d->rssi_avg);
     put_at(BTL_COL_DBM, y, line, COL_WHITE);
     put_at(BTL_COL_KIND, y, btd_kind_name(d->adv.kind), d->adv.kind == BT_KIND_TRACKER ? COL_YELLOW : COL_WHITE);
 }
@@ -217,10 +226,10 @@ static void draw_list(unsigned top, unsigned cfirst, unsigned chosen, bool pause
             clear_row(BTL_ROW_FIRST + (int)row);
     }
     draw_classic_area(cycle, cfirst, chosen, now);
-    put_row(BTX_ROW_PAUSE, "P=PAUSE", COL_WHITE);
+    put_row(BTX_ROW_PAUSE, BTX_PAUSE_LINE, COL_WHITE);
     put_row(BTX_ROW_HELP, "ENTER=CONNECT D=DETAILS L=LAN", COL_WHITE);
     put_row(BTX_ROW_HELP + 1, "F=FIND I=READ T=TRACKER X=CROWD", COL_WHITE);
-    put_row(BTX_ROW_HELP + 2, "R=RESET W=WIFI ESC=TITLE", COL_WHITE);
+    put_row(BTX_ROW_HELP + 2, BTX_HELP_3, COL_WHITE);
 }
 
 const bt_device_t *tool_bt_pan_target(void)
@@ -237,7 +246,7 @@ int tool_bt_nearby(void)
     unsigned windows = 0;
     uint32_t last = 0, window_start = plat_now_ms();
     int exit_code = BT_EXIT_BACK;
-    char cycle[16];
+    char cycle[24], every[8];
 
     screen_clear();
     bt_devices_clear();
@@ -252,7 +261,7 @@ int tool_bt_nearby(void)
             shown_now = now;        /* paused: nothing ages, so the list stays as it was */
         if (key == KEY_ESC)
             break;
-        if (now - last >= BTL_REFRESH_MS) {
+        if (now - last >= scan_interval_get()) {
             unsigned i, total;
 
             last = now;
@@ -322,6 +331,10 @@ int tool_bt_nearby(void)
             memcpy(selected, device_at(chosen)->address, 6);
             have_selected = true;
             last = 0;
+        } else if (key == KEY_LEFT || key == KEY_RIGHT) {
+            scan_interval_change(key == KEY_RIGHT ? 1 : -1);
+            last = 0;
+            redraw = true;
         } else if (key == 'l' || key == 'L') {
             if (link_kind() == LINK_NONE) {
                 notice(BTX_ROW_MESSAGE, LINK_NEEDED, COL_YELLOW);
@@ -336,20 +349,6 @@ int tool_bt_nearby(void)
         } else if (key == 't' || key == 'T' || key == 'x' || key == 'X') {
             exit_code = key >= 'a' ? key - 'a' + 'A' : key;
             break;
-        } else if (key == KEY_ENTER || key == KEY_RETURN) {
-#if CHIP_BT_TETHER
-            if (le_count + classic_count > 0 && chosen >= le_count) {
-                pan_target = *device_at(chosen);
-                exit_code = 'P';
-                break;
-            }
-            if (le_count + classic_count > 0)
-                notice(BTX_ROW_MESSAGE, BTX_NO_TETHER, COL_YELLOW);
-#else
-            if (le_count + classic_count > 0)
-                notice(BTX_ROW_MESSAGE, BTX_NO_TETHER_BUILD, COL_YELLOW);
-#endif
-            redraw = true;
         } else if (key == 'r' || key == 'R') {
             bt_devices_clear();
             le_count = classic_count = 0;
@@ -367,15 +366,23 @@ int tool_bt_nearby(void)
                 window_start = now;
             }
             redraw = true;
-        } else if (le_count + classic_count > 0 && (key == 'd' || key == 'D' || key == 'f' || key == 'F' || key == 'i' || key == 'I')) {
+        } else if (le_count + classic_count > 0 && (key == 'd' || key == 'D' || key == KEY_ENTER || key == KEY_RETURN ||
+                                                        key == 'f' || key == 'F' || key == 'i' || key == 'I')) {
             bt_device_t d = *device_at(chosen);
             bool le = chosen < le_count;
             uint8_t k = key;
 
-            if (key == 'd' || key == 'D') {
+            if (key == 'd' || key == 'D' || key == KEY_ENTER || key == KEY_RETURN) {
                 show_details(&d);
                 drain_keys();
                 k = wait_any_key();
+#if CHIP_BT_TETHER
+                if (d.classic && (k == KEY_ENTER || k == KEY_RETURN || k == 't' || k == 'T')) {
+                    pan_target = d;
+                    exit_code = 'P';
+                    break;
+                }
+#endif
             }
             if (le && (k == 'f' || k == 'F'))
                 bt_find_device(&d);
@@ -391,12 +398,13 @@ int tool_bt_nearby(void)
             redraw = true;
         }
         if (redraw) {
+            scan_interval_text(every, sizeof every);
             if (paused)
-                snprintf(cycle, sizeof cycle, "PAUSED");
+                snprintf(cycle, sizeof cycle, "PAUSED  %s", every);
             else if (inquiring)
-                snprintf(cycle, sizeof cycle, "SEARCHING");
+                snprintf(cycle, sizeof cycle, "SEARCHING  %s", every);
             else
-                snprintf(cycle, sizeof cycle, "LE %u/%u", windows + 1, (unsigned)BTX_WINDOWS);
+                snprintf(cycle, sizeof cycle, "LE %u/%u  %s", windows + 1, (unsigned)BTX_WINDOWS, every);
             draw_list(top, cfirst, chosen, paused, cycle);
             redraw = false;
         }

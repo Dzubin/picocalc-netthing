@@ -9,6 +9,7 @@
 
 #define LINK_ROW            0       /* the top row of every screen */
 #define LINK_TEXT_MAX       40
+#define LINK_OWNER_TAG      "Dzubin NetThing "   /* right end of the top row */
 
 #define LINK_NONE           0
 #define LINK_WIFI           1

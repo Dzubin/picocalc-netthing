@@ -8,6 +8,7 @@
  * Author: Thomas Dzubin
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "pico/stdlib.h"
@@ -94,6 +95,17 @@ static void hear(entry_t *e, int rssi)
     e->device.rssi = (int8_t)(rssi < -127 ? -127 : (rssi > 20 ? 20 : rssi));
     if (e->device.rssi > e->device.rssi_best)
         e->device.rssi_best = e->device.rssi;
+    if (e->device.sightings == 0) {
+        e->device.rssi_x8 = (int16_t)(e->device.rssi * 8);
+        e->device.rssi_avg = e->device.rssi;
+        e->device.rssi_sort = e->device.rssi;
+    } else {
+        /* a running average for the scan screen, which sorts by it in steps of BT_SORT_MARGIN */
+        e->device.rssi_x8 = (int16_t)(e->device.rssi_x8 + (e->device.rssi * 8 - e->device.rssi_x8) / BT_SMOOTH_DIV);
+        e->device.rssi_avg = (int8_t)((e->device.rssi_x8 >= 0 ? e->device.rssi_x8 + 4 : e->device.rssi_x8 - 4) / 8);
+        if (abs(e->device.rssi_avg - e->device.rssi_sort) >= BT_SORT_MARGIN)
+            e->device.rssi_sort = e->device.rssi_avg;
+    }
     e->device.sightings++;
     e->device.last_ms = now_ms();
 }

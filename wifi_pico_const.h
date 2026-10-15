@@ -11,6 +11,8 @@
 #define WIFI_RELEASE_MS    200                    /* time for the DHCP release to go out before leaving the network */
 #define WIFI_LEAVE_MS      300                    /* ... and for the disassociation */
 #define WIFI_AP_KEEP_SCANS  3                     /* a scan that continues an earlier one drops access points not heard for this many scans */
+#define WIFI_SMOOTH_DIV     2                    /* each scan moves the averaged signal this fraction (1/n) of the way to the new one */
+#define WIFI_SORT_MARGIN    6                     /* dB: the sort position follows the signal only after it has moved this far */
 
 /* Authentication methods to try, in order, for a WPA2 network: WPA2 or WPA2/WPA first, then
  * WPA2/WPA3 for an access point that only accepts WPA3 */

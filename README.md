@@ -11,16 +11,37 @@ phone, or by IP over USB to a PC, and then has a set of tools for finding out wh
 **Pico 2 W** (RP2350) and, with some smaller limits, on the older **Pico W** (RP2040); there is no Windows or Linux
 build, because the program needs the wireless chip.
 
+**About the Wi-Fi:** the PicoCalc's radio supports only **802.11n in the 2.4 GHz band**. It cannot see or join 5 GHz networks or the
+newer standards such as 802.11ac (Wi-Fi 5) or 802.11ax (Wi-Fi 6), so a router that offers only those will not show in the scan, and
+everything this program says about "Wi-Fi" means 2.4 GHz 802.11n (channels 1 to 13 in the channel survey).
+
+**It is also a Bluetooth tracker finder.** Besides troubleshooting networks, it can find Bluetooth trackers such as the **Apple AirTag**
+(and other Apple Find My tags, Tile and Samsung SmartTag) hiding nearby: the tracker alert lists them as **NEAR** or **FAR AWAY**, shows
+how long each has been in range (a tag that stays with you for many minutes may be following you), and the find tool follows one by its
+signal strength to help you locate it.
+
+The Wi-Fi scan (35 access points) and the Bluetooth scan (63 devices, two of them marked as trackers), as screenshots taken in a shopping mall.
+More screens, from the connection details to the health check, are in [SCREENSHOTS.md](SCREENSHOTS.md).
+
+<table>
+<tr>
+<td><img src="Screens/SCRNFCFA.png" width="320" alt="Wi-Fi scan screen"></td>
+<td><img src="Screens/SCRN156E.png" width="320" alt="Bluetooth scan screen"></td>
+</tr>
+</table>
+
 ## What it does
 
 After the title screen the program is always in one of three **modes**, and the top line of every screen says how it is connected
 (`NOT CONNECTED`, `WI-FI name -52 DBM`, `USB 192.168.137.2` or `BT phone 192.168.44.x`):
 
-- the **Wi-Fi scan**: it scans over and over by itself and lists the access points in range with signal strength, channel and security.
+- the **Wi-Fi scan** (2.4 GHz 802.11n only, see above): it scans over and over by itself and lists the access points in range with signal strength, channel and security.
   Networks you saved are kept at the top (green when the name and the access point's address are both saved, yellow when only one of them is).
-  `Enter` connects (the password is kept on the SD card in a scrambled form), `D` shows the details;
+  `Enter` (or `D`) shows the details, and `Enter` or `C` there connects (the password is kept on the SD card in a scrambled form). The signal shown is a running average
+  and a row moves only when its signal has changed by 6 dB or more, so the list stays readable; `Left` and `Right` set the time between
+  scans (0.5 to 10 seconds, 1.0 at the start);
 - the **Bluetooth scan**: the Low Energy devices around, with a Classic area below for phones and other Classic devices. `Enter` on a phone
-  tethers to it (see "Reaching the LAN"). The Bluetooth tools (find one device by its signal, read what a device says about itself, a
+  opens its details, and `Enter` or `T` there tethers to it (see "Reaching the LAN"). The Bluetooth tools (find one device by its signal, read what a device says about itself, a
   tracker alert and a 2.4 GHz crowding report) are keys on this screen;
 - the **LAN tools**, once connected by any of the three ways: health check, ping, ping the router, continuous ping with a graph and a
   log file, trace route, a DNS checker, name lookup, a speed test, a web page check (the status code a server answers with, not the page),
@@ -139,12 +160,12 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | `U` | splash | connect to the LAN with IP over USB (see below) |
 | `ESC` or `Q` | splash | leaves for the PicoCalc UF2 Loader menu, after a `LEAVE THE PROGRAM? Y/N` question if Wi-Fi is connected (it asks the loader for its menu through the watchdog scratch registers; with no loader installed the program just restarts) |
 | `Up`, `Down` | scan list | choose an access point (name green: saved name and BSSID; yellow: only one of the two saved) |
-| `Enter` | scan list | connect to the chosen access point (saved ones need no typing); if a connection is up it asks first, because only one link to the LAN is used at a time |
+| `Enter`, `D` | scan list | the details of the chosen access point, which say whether it can be connected to; `Enter` or `C` there connects (saved ones need no typing); if a connection is up it asks first, because only one link to the LAN is used at a time; on the network already connected to it goes straight to the connection screen |
 | `F5` | any screen | save a screenshot of the screen as `/netthing/SCREENS/SCRNxxxx.BMP` on the SD card (not shown in any on-screen help) |
 | `T` | scan list | the Wi-Fi tools menu: health check, signal meter, channel survey (`V` there switches between bars and hills) |
 | `L` | scan list, Bluetooth screen | the LAN tools menu, when connected by any link; otherwise it says `NOT CONNECTED: CONNECT FIRST` |
-| `D` | scan list | details: name, BSSID, channel and frequency, signal, security, whether it is saved |
-| `C` | details | connect to the access point |
+| `D` | scan list | details: name, BSSID, channel and frequency, signal, security, whether it is saved, whether it can be connected to |
+| `Enter`, `C` | details | connect to the access point |
 | `M` | scan list | join a network by typing its name (for a hidden network); the `<hidden>` row with `C` does the same |
 | `S` | scan list | the saved networks, names only; `D` forgets one after a Y/N question |
 | `I` | scan list | the status of the connection (when connected) |
@@ -155,7 +176,7 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | `T`, `D`, `U`, `L`, `ESC` | test server menu | talk to the server; download speed; upload speed; latency test; back |
 | `L`, `C`, `ESC` | continuous ping | start or end the log file; clear the figures; stop |
 | `B` | scan list | the Bluetooth tools (no Wi-Fi connection is needed) |
-| `Up`, `Down`, `Enter`, `D`, `F`, `I`, `T`, `X`, `L`, `P`, `R`, `W`, `ESC` | Bluetooth screen (nearby devices) | choose; tether to the chosen Classic phone; details; find the chosen one by its signal; read it; tracker alert; crowding report; the LAN tools; pause; empty the list; back to the Wi-Fi scan (`W`; `ESC` goes to the title screen; either way the radio is switched off) |
+| `Up`, `Down`, `Enter`, `D`, `F`, `I`, `T`, `X`, `L`, `P`, `R`, `W`, `ESC` | Bluetooth screen (nearby devices) | choose; details (`Enter` or `D`; on a Classic phone `Enter` or `T` there tethers to it); find the chosen one by its signal; read it; tracker alert; crowding report; the LAN tools; pause; empty the list; back to the Wi-Fi scan (`W`; `ESC` goes to the title screen; either way the radio is switched off) |
 | `Up`, `Down`, `Enter`, `F`, `I`, `C`, `P`, `ESC` | Bluetooth device list | choose; details; find it; read it; clear the list; pause the scan; back |
 | `Up`, `Down`, `PgUp`, `PgDn`, `R`, `ESC` | LAN scan list | scroll; scan again; back |
 | `R`, `V`, `ESC` | channel survey | scan again; bars or hills; back |
@@ -163,6 +184,7 @@ LICENSE, CHANGELOG.md       MIT licence; version history
 | `Left`, `Right`, `Up`, `Down`, `ESC` | port grid | choose a square; back |
 | `Enter`, `Tab`, `ESC` | typing a name or password | accept; show or hide the password; cancel |
 | `P`, `R` | scan list | pause or resume the scanning (the list scans over and over, by itself); empty the list and start again |
+| `Left`, `Right` | Wi-Fi scan, Bluetooth screen | a shorter or longer time between list updates, in steps of 0.5 s from 0.5 to 10 s (shown at the right of the heading; not in the on-screen help) |
 | `ESC` | scan list | back to the title screen (also while a scan is running); any key there carries on in the mode you left |
 | `ESC` | details | back to the list |
 | `~` (SHIFT + backtick) | every screen, including while waiting for the network | reboots into BOOTSEL (USB drive) mode. While a name or password is being typed, one `~` is a character and two quickly in a row reboot |
@@ -185,10 +207,10 @@ about themselves; it cannot see the traffic between two other devices, and it ca
   input, tracker, beacon, health, sensor), worked out from what it announces. A name in yellow has not been heard for 15 seconds.
   Below the list is a **Classic area** with four rows of the Classic devices (phones, computers, headsets, older speakers and car kits), strongest first; the heading shows `1-4 OF 17` when there are more, and the cursor scrolls through them. The Low Energy scan runs
   in windows of 5 seconds, and after four windows it stops for one Classic inquiry (about 10 to 15 seconds, with the names asked for
-  afterwards), then carries on; the right end of the Classic heading shows `LE 1/4` to `LE 4/4`, `SEARCHING` or `PAUSED`. `P` pauses.
-  The cursor runs down the Low Energy list and on into the Classic rows. `Enter` is the connect key (for tethering to a Classic phone;
-  it says so for now, because tethering is not built yet) and `D` shows the details of any row.
-  `Enter` shows the details: the address and whether it is a private one that changes (phones do this), the maker, the services it
+  afterwards), then carries on; the right end of the Classic heading shows `LE 1/4` to `LE 4/4`, `SEARCHING` or `PAUSED`, followed by the time between list updates (`1.0S`; `Left` and `Right` change it). `P` pauses.
+  The cursor runs down the Low Energy list and on into the Classic rows. `Enter` and `D` both show the details of the row.
+  The details screen says whether the device can be tethered to (only Classic devices can, and not in the Pico W build); on a
+  Classic device `Enter` or `T` there starts the tether. It shows the address and whether it is a private one that changes (phones do this), the maker, the services it
   announces, the signal and how often it is heard. Phones often change their address every few minutes, so one phone may show up as
   several devices.
 - **Find one (F):** choose a device and a wide signal meter follows it as its adverts arrive, with the best and the worst, a strip of
@@ -196,11 +218,14 @@ about themselves; it cannot see the traffic between two other devices, and it ca
 - **Read a device (I):** connects to a Low Energy device and reads its name, maker, model, firmware and battery level (a green,
   yellow or red bar) and the list of its services, then lets go. Many devices accept only one connection, or only their owner's phone;
   the screen then says it failed and suggests turning off the phone's Bluetooth.
-- **Tracker alert (T):** looks for the tags that can be found with a phone (Apple's Find My network, Tile and Samsung SmartTag) and shows
+- **Tracker alert (T):** looks for Bluetooth trackers such as the **Apple AirTag** and the other tags that can be found with a phone
+  (Apple's Find My network, Tile and Samsung SmartTag) and shows
   how long each has been in range. A tag that stays in range for many minutes while you move about (yellow after 5 minutes, red
   after 15) is probably with you and may not be yours. A Find My advert can also come from an Apple device that is away from its
   owner, and tags change their address now and then, so the time in range is the sign, not the address. It sees only tags that
-  announce themselves in the usual way.
+  announce themselves in the usual way. The tags are split into two lists, **NEAR** (a green or yellow signal) and **FAR AWAY** (a red
+  signal), each longest in range first, showing up to eight and five. The signal is a running average. The time between updates starts at
+  1.0 s and `Left` and `Right` change it by 0.5 s (0.5 to 10 s, the same setting as on the scan screens; shown at the top right).
 - **2.4 GHz crowding report (X):** Wi-Fi and Bluetooth use the same band, and this chip's antenna. It listens to both for ten seconds,
   draws the Wi-Fi networks on each channel, counts the Bluetooth devices (and how many are close), and says whether the band is quiet,
   busy or crowded, which is a common cause of a slow link or choppy audio.
@@ -385,8 +410,8 @@ After the title screen the program is always in one of three modes: the **Wi-Fi 
 menu. `B` and `L` (on the scan screens) and `W` and `B` (in the LAN tools menu) move between them. `ESC` in a mode goes back to the
 title screen, and any key there carries on in the mode that was left (the Wi-Fi scan the first time, and also if the LAN tools have
 no connection any more). Going to the title screen does not drop the connection, so a stray `ESC` costs nothing. `ESC` or `Q` on
-the title screen leaves the program. A scan that was paused starts again when you come back to it from another screen, except that
-the Wi-Fi scan stays paused while a connection is up.
+the title screen leaves the program. A scan that was paused starts again when you come back to it from another screen, also when a
+connection is up (the scan may interrupt the connection for a moment).
 
 ## Reaching the LAN: Wi-Fi, USB and Bluetooth
 
@@ -452,7 +477,7 @@ The top line of every screen says how it is connected.
   2. On the PicoCalc press `B` for the Bluetooth scan. Phones show in the Classic area at the bottom, once every five 5-second scan windows. A phone is
      only found while it is *discoverable*, which most are only while their Bluetooth settings screen is open; open it and wait a short while.
      A phone that is already paired with the PicoCalc is shown in **green** and kept at the top of the list.
-  3. Move the cursor onto the phone (`Down` goes on past the Low Energy list into the Classic rows) and press `Enter`.
+  3. Move the cursor onto the phone (`Down` goes on past the Low Energy list into the Classic rows) and press `Enter` for its details, then `Enter` or `T` to tether.
   4. The first time the PicoCalc and the phone pair: a code is shown on both; if they are the same press `Y` on the PicoCalc and accept on the phone.
      The pairing is kept (in the chip's flash), so next time there is no question.
   5. The screen shows `ASKING THE PHONE FOR ITS NETWORK`, `OPENING THE LINK`, `WAITING FOR AN ADDRESS (DHCP)`, and then the LAN tools open with
@@ -487,6 +512,13 @@ saved network has both its name and its BSSID, and in **yellow** when only one o
 saved network that has no BSSID yet). Joining a saved network adds the BSSID of the access
 point you reached, so a yellow name turns green after the first connection. A file from an
 earlier version is still read; the next save writes the new kind.
+
+**Roaming:** the program joins a network by its name only, never by a chosen access point, and it
+does nothing of its own to move between access points that share a name. The CYW43 chip's
+firmware does that by itself (it can roam on a weak signal, lost beacons, a deauthentication or
+a better access point), so the PicoCalc stays on the network when the access point changes.
+The program has no setting for when the firmware roams, and it has not been tested how
+quickly it does.
 
 ## Building
 

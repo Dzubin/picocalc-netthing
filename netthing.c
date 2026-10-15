@@ -2,10 +2,21 @@
  *  PicoCalc NetThing
  *  ===========================================
  *
- *  Wireless networking for the ClockworkPi PicoCalc with a Pico 2 W. This step
- *  scans for access points, joins one (typing the password, or using the one
- *  saved on the SD card in scrambled form), and shows the connection. Later
- *  steps fetch web pages.
+ *  A networking troubleshooting tool for the ClockworkPi PicoCalc, on either a
+ *  Pico W (RP2040) or a Pico 2 W (RP2350). It troubleshoots both Wi-Fi and
+ *  Bluetooth. The radio supports only 802.11n Wi-Fi in the 2.4 GHz band (no
+ *  5 GHz, no 802.11ac or newer), so that is all the Wi-Fi scan can see.
+ *
+ *  The Wi-Fi scan lists the access points in range (signal, channel,
+ *  security), joins one (typing the password, or using the one saved on the
+ *  SD card in scrambled form) and shows the connection. The Bluetooth scan
+ *  lists the Low Energy and Classic devices around, with tools to find, read
+ *  and track them (it also finds Bluetooth trackers such as the Apple AirTag:
+ *  a NEAR and a FAR AWAY list, and a signal follower to locate one; tethering
+ *  is on the Pico 2 W only). The LAN tools (ping, trace route, DNS, speed
+ *  test and more) work over whichever link is up (Wi-Fi, IP over USB or
+ *  Bluetooth tethering). This file holds main(), the splash screen, the
+ *  Wi-Fi scan and the Wi-Fi connection screens.
  *
  *  Hardware used (all through the vendored picocalc-text-starter drivers by
  *  Blair Leduc, in picocalc-text-starter-main/, plus the radio in wifi.h):
@@ -18,17 +29,30 @@
  *  when the FIFO is empty. We do not call picocalc_init(), so nothing else
  *  drains that FIFO.
  *
- *  Controls
+ *  Controls (the Bluetooth screen and the tools have their own keys; the
+ *  README lists them all)
  *      any key ........ splash: open the scan screen
+ *      U .............. splash: connect with IP over USB
  *      ESC or Q ....... splash: leave for the PicoCalc UF2 Loader menu
  *      UP, DOWN ....... scan list: choose an access point
- *      ENTER .......... scan list: details of the chosen access point
- *      C .............. scan list or details: connect to it
+ *      ENTER or D ..... scan list: details of the chosen access point, which
+ *                       say whether it can be connected to
+ *      ENTER or C ..... details: connect to it (for the network already
+ *                       joined, show the connection instead)
+ *      LEFT, RIGHT .... scan list: a shorter or longer time between scans
+ *                       (0.5 to 10 s in steps of 0.5; not in the help lines)
+ *      P .............. scan list: pause or resume the scanning
+ *      R .............. scan list: empty the list and scan again
  *      M .............. scan list: join a network by typing its name
  *      S .............. scan list: the saved networks (D forgets one)
  *      I .............. scan list: the status of the connection
- *      R .............. scan list: scan again
+ *      T .............. scan list: the Wi-Fi tools (health check, signal
+ *                       meter, channel survey)
+ *      L .............. scan list: the LAN tools, when a link is up
+ *      B .............. scan list: switch to the Bluetooth scan (W there
+ *                       comes back to this screen)
  *      ESC ............ back one screen
+ *      F5 ............. save a screenshot to the SD card, on any screen
  *      ~ (SHIFT+`) .... reboot into BOOTSEL (USB drive) mode, from anywhere,
  *                       also while the radio is scanning or joining. While a
  *                       name or password is being typed, one ~ is a character
@@ -37,7 +61,7 @@
  *  Two headers keep this file to code only: netthing_const.h holds every
  *  constant and platform.h is the whole interface to the machine (clock,
  *  sleep, BOOTSEL, exit to the UF2 Loader), implemented in platform_pico.c
- *  for the PicoCalc (Pico 2 W).
+ *  for the PicoCalc (Pico W and Pico 2 W).
  *
  *  Author: Thomas Dzubin
  */
@@ -269,22 +293,39 @@ static void splash_screen(void)
 
 static bool     scanning;       /* a Wi-Fi scan is running */
 static bool     paused;         /* P: no new scan is started */
-static bool     auto_paused;    /* paused because a link is up (it ends with the link) */
 static bool     fresh = true;   /* the next scan empties the list first */
 static uint32_t scan_started_ms;
+static uint32_t scan_ended_ms;
+static bool     gap_wait;       /* a scan has just ended: the next one waits for the interval */
 
 /* Carry the scanning on one step. Called often. */
 static int scan_step(void)
 {
+    int started;
+
     if (paused)
         return EVENT_NONE;
     if (scanning) {
         if (wifi_scan_busy() && plat_now_ms() - scan_started_ms <= SCAN_TIMEOUT_MS)
             return EVENT_NONE;
         scanning = false;
+        scan_ended_ms = plat_now_ms();
+        gap_wait = true;
         return EVENT_LIST;
     }
-    if ((fresh ? wifi_scan_start() : wifi_scan_more()) != 0) {
+    if (gap_wait) {
+        if (plat_now_ms() - scan_ended_ms < scan_interval_get())
+            return EVENT_NONE;
+        gap_wait = false;
+    }
+    started =fresh ? wifi_scan_start() : wifi_scan_more();
+    if (started != 0) {
+        /* the radio may still be settling (for instance just after the
+         * Bluetooth screen): one more try before giving up */
+        plat_sleep_ms(SCAN_RETRY_MS);
+        started = fresh ? wifi_scan_start() : wifi_scan_more();
+    }
+    if (started != 0) {
         put_row(SCAN_ROW_MESSAGE, "THE SCAN WOULD NOT START", COL_YELLOW);
         paused = true;
         return EVENT_STATUS;
@@ -313,8 +354,10 @@ static void scan_leave(void)
 static void draw_heading(void)
 {
     char line[TCOLS + 1];
-    const char *state = paused ? "PAUSED" : "SCANNING";
+    char state[20], every[8];
 
+    scan_interval_text(every, sizeof every);
+    snprintf(state, sizeof state, "%s  %s", paused ? "PAUSED" : "SCANNING", every);
     clear_row(SCAN_ROW_HEADING);
     snprintf(line, sizeof line, "WIFI SCAN  %u FOUND", wifi_ap_count());
     put_at(0, SCAN_ROW_HEADING, line, COL_CYAN);
@@ -379,7 +422,7 @@ static void draw_list(unsigned top, unsigned chosen)
 static void draw_scan_screen(unsigned top, unsigned chosen)
 {
     screen_clear();
-    put_row(SCAN_ROW_PAUSE, "P=PAUSE", COL_WHITE);
+    put_row(SCAN_ROW_PAUSE, SCAN_PAUSE_LINE, COL_WHITE);
     put_row(SCAN_ROW_HELP, SCAN_HELP_1, COL_WHITE);
     put_row(SCAN_ROW_HELP_2, SCAN_HELP_2, COL_WHITE);
     draw_list(top, chosen);
@@ -387,6 +430,17 @@ static void draw_scan_screen(unsigned top, unsigned chosen)
         put_row(SCAN_ROW_MESSAGE, SCAN_PAUSED_LINKED, COL_YELLOW);
     if (saved_problem != NULL)
         put_row(SCAN_ROW_MESSAGE, saved_problem, COL_YELLOW);
+}
+
+/* True when the access point in row `index` of the list is a network that is
+ * already joined (same name), so there is nothing to connect. */
+static bool is_joined_network(unsigned index)
+{
+    wifi_ap_t ap;
+    wifi_info_t info;
+
+    return wifi_connected() && wifi_ap_get(index, &ap) && ap.ssid[0] &&
+           wifi_info_get(&info) && strcmp(info.ssid, ap.ssid) == 0;
 }
 
 /* A second connection is only made after the first is given up (one way to the
@@ -399,19 +453,6 @@ bool leave_current_link(void)
         link_drop();
     }
     return true;
-}
-
-/* While a link is up the scanning stays paused (a scan makes the radio leave
- * the channel for a moment); it starts again when the link is gone. */
-static void pause_for_link(void)
-{
-    if (wifi_connected()) {
-        paused = true;
-        auto_paused = true;
-    } else if (auto_paused) {
-        paused = false;
-        auto_paused = false;
-    }
 }
 
 /* IP over USB: start the adapter and wait for the PC to give an address. Returns
@@ -465,12 +506,10 @@ static int usb_connect(void)
     }
 }
 
-/* Back from another screen: the scan goes on, unless a link is up. */
+/* Back from another screen: the scan goes on, even with a link up. */
 static void resume_scanning(void)
 {
     paused = false;
-    auto_paused = false;
-    pause_for_link();
 }
 
 /* The saved access points go to the top of the list (the ones with the saved name and address first), so the one to
@@ -528,9 +567,8 @@ static int scan_screen(void)
     }
     saved_load();
     wifi_ap_set_rank(ap_rank);
-    scanning = paused = auto_paused = false;
-    fresh = true;
-    pause_for_link();
+    scanning = paused = gap_wait = false;
+    fresh = true;                      /* arriving here always starts scanning, even with a link up */
     drain_keys();
 
     for (;;) {
@@ -573,10 +611,13 @@ static int scan_screen(void)
             }
             fresh = true;
             paused = false;
+            gap_wait = false;
             redraw = true;
+        } else if (key == KEY_LEFT || key == KEY_RIGHT) {
+            scan_interval_change(key == KEY_RIGHT ? 1 : -1);
+            draw_heading();
         } else if (key == 'p' || key == 'P') {
             paused = !paused;
-            auto_paused = false;
             clear_row(SCAN_ROW_MESSAGE);
             if (paused && wifi_connected())
                 put_row(SCAN_ROW_MESSAGE, SCAN_PAUSED_LINKED, COL_YELLOW);
@@ -587,17 +628,15 @@ static int scan_screen(void)
         } else if (key == KEY_DOWN && chosen + 1 < count) {
             chosen++;
             note_chosen(chosen, chosen_bssid, &have_chosen);
-        } else if ((key == KEY_ENTER || key == KEY_RETURN) && count > 0) {
-            if (leave_current_link()) {
-                scan_leave();
-                connect_selected(chosen);
-            }
-            resume_scanning();
-            redraw = true;
-        } else if ((key == 'd' || key == 'D') && count > 0) {
-            if (detail_screen(chosen) == 'C' && leave_current_link()) {
-                scan_leave();
-                connect_selected(chosen);
+        } else if ((key == KEY_ENTER || key == KEY_RETURN || key == 'd' || key == 'D') && count > 0) {
+            if (detail_screen(chosen) == 'C') {
+                if (is_joined_network(chosen)) {
+                    scan_leave();
+                    status_screen();        /* already connected to it: show the connection */
+                } else if (leave_current_link()) {
+                    scan_leave();
+                    connect_selected(chosen);
+                }
             }
             resume_scanning();
             redraw = true;
@@ -662,6 +701,7 @@ static uint8_t detail_screen(unsigned index)
     char text[TCOLS + 1];
     unsigned bars;
     uint8_t key;
+    bool can_connect;
 
     if (!wifi_ap_get(index, &ap))
         return 0;
@@ -697,12 +737,21 @@ static uint8_t detail_screen(unsigned index)
         put_at(DETAIL_COL_VALUE, DETAIL_ROW_SAVED,
                storage_ready() == 0 ? DETAIL_SAVED_NO : DETAIL_SAVED_NO_SD, COL_WHITE);
 
-    put_row(DETAIL_ROW_HELP, DETAIL_HELP, COL_WHITE);
+    /* WEP cannot be joined (wifi_attempts() is 0 for it); open and WPA networks can */
+    can_connect = wifi_attempts(ap.security, true) != 0;
+    if (!can_connect)
+        put_row(DETAIL_ROW_MESSAGE, DETAIL_NO_WEP, COL_YELLOW);
+    else if (is_joined_network(index))
+        put_row(DETAIL_ROW_MESSAGE, DETAIL_JOINED, COL_GREEN);
+    else
+        put_row(DETAIL_ROW_MESSAGE, DETAIL_CAN, COL_GREEN);
+    put_row(DETAIL_ROW_HELP, can_connect ? DETAIL_HELP : DETAIL_HELP_BACK, COL_WHITE);
+    drain_keys();
     for (;;) {
         key = wait_any_key();
         if (key == KEY_ESC)
             return 0;
-        if (key == 'c' || key == 'C')
+        if (can_connect && (key == 'c' || key == 'C' || key == KEY_ENTER || key == KEY_RETURN))
             return 'C';
     }
 }

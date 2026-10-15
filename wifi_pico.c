@@ -42,6 +42,7 @@ static int scan_result(void *env, const cyw43_ev_scan_result_t *result)
     unsigned i;
     wifi_ap_t *ap;
     unsigned len;
+    bool is_new;
 
     (void)env;
     if (result == NULL)
@@ -49,6 +50,7 @@ static int scan_result(void *env, const cyw43_ev_scan_result_t *result)
     for (i = 0; i < ap_total; i++)
         if (memcmp(ap_list[i].bssid, result->bssid, sizeof ap_list[i].bssid) == 0)
             break;
+    is_new = (i == ap_total);
     if (i == ap_total) {
         if (ap_total >= WIFI_AP_MAX) {
             /* full: the access point not heard for longest makes room */
@@ -72,7 +74,18 @@ static int scan_result(void *env, const cyw43_ev_scan_result_t *result)
     memcpy(ap->ssid, result->ssid, len);
     ap->ssid[len] = '\0';
     memcpy(ap->bssid, result->bssid, sizeof ap->bssid);
-    ap->rssi = result->rssi;
+    if (is_new) {
+        ap->rssi = result->rssi;
+        ap->rssi_x8 = (int16_t)(result->rssi * 8);
+        ap->sort_rssi = ap->rssi;
+    } else {
+        /* a running average, so one odd reading does not move the entry; the sort position
+         * follows only when the average has moved a good way from it */
+        ap->rssi_x8 = (int16_t)(ap->rssi_x8 + (result->rssi * 8 - ap->rssi_x8) / WIFI_SMOOTH_DIV);
+        ap->rssi = (int16_t)((ap->rssi_x8 >= 0 ? ap->rssi_x8 + 4 : ap->rssi_x8 - 4) / 8);
+        if (abs(ap->rssi - ap->sort_rssi) >= WIFI_SORT_MARGIN)
+            ap->sort_rssi = ap->rssi;
+    }
     ap->channel = (uint8_t)result->channel;
     ap->security = result->auth_mode;
     dirty = true;
@@ -144,11 +157,12 @@ unsigned wifi_scan_found(void)
 
 static int (*rank_fn)(const wifi_ap_t *ap);
 
-/* the higher rank first, then the strongest signal (rssi is negative, so a larger value is stronger) */
+/* the higher rank first, then the strongest signal (rssi is negative, so a larger value is stronger);
+ * equal signals go by address, so the order never shuffles between two refreshes */
 static int by_signal(const void *a, const void *b)
 {
-    int x = ((const wifi_ap_t *)a)->rssi;
-    int y = ((const wifi_ap_t *)b)->rssi;
+    int x = ((const wifi_ap_t *)a)->sort_rssi;
+    int y = ((const wifi_ap_t *)b)->sort_rssi;
 
     if (rank_fn != NULL) {
         int rx = rank_fn((const wifi_ap_t *)a), ry = rank_fn((const wifi_ap_t *)b);
@@ -156,7 +170,9 @@ static int by_signal(const void *a, const void *b)
         if (rx != ry)
             return ry - rx;
     }
-    return y - x;
+    if (y != x)
+        return y - x;
+    return memcmp(((const wifi_ap_t *)a)->bssid, ((const wifi_ap_t *)b)->bssid, 6);
 }
 
 void wifi_ap_set_rank(int (*rank)(const wifi_ap_t *ap))

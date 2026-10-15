@@ -87,5 +87,6 @@ void link_draw(void)
     uint16_t colour = link_text(text, sizeof text);
 
     clear_row(LINK_ROW);
+    put_at(TCOLS - (int)strlen(LINK_OWNER_TAG), LINK_ROW, LINK_OWNER_TAG, COL_WHITE);
     put_at(0, LINK_ROW, text, colour);
 }

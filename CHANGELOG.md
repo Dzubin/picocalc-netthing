@@ -6,6 +6,41 @@ the version here matches the `VERSION` define in `netthing_const.h`.
 
 ## [Unreleased]
 
+### Changed
+- `Enter` on the Wi-Fi scan now shows the access point details, like `D`. The details screen says whether it can be connected to
+  (`CAN CONNECT TO IT`, `CONNECTED TO IT` when it is the network already joined, or `CANNOT CONNECT: WEP IS NOT SUPPORTED`), and `Enter` or
+  `C` there connects (or, for the network already joined, shows the connection without asking to disconnect).
+- `Enter` on the Bluetooth scan now shows the device details, like `D`. The details screen says whether the device can be tethered to
+  (`CAN TETHER TO IT: ENTER OR T` for a Classic device; `CANNOT TETHER` for a Low Energy device or in the Pico W build), and `Enter` or `T`
+  there starts the tether to a Classic device.
+- The tracker alert screen has two lists: **NEAR** (tags with a green or yellow signal) and **FAR AWAY** (a red signal), up to eight and five rows,
+  longest in range first, the rows indented two columns. The signal shown is the running average. The update interval is the one of the scan screens (1.0 s at the start)
+  and `Left` and `Right` change it by 0.5 s.
+- `Enter` on the Wi-Fi scan, on the network the PicoCalc is already connected to, goes straight to the connection screen (address, network,
+  gateway, DNS) instead of asking to disconnect first.
+
+## [V1.12A]
+
+### Added
+- `Left` and `Right` on the Wi-Fi scan and the Bluetooth scan shorten or lengthen the time between list updates, in steps of 0.5 s from 0.5 s
+  to 10 s (1.0 s at the start; one setting for both screens). The Wi-Fi heading shows it (`SCANNING  1.0S`) and so does the Bluetooth
+  heading (`LE 1/4  1.0S`). On the Wi-Fi scan it is the wait between one scan and the next; on the Bluetooth scan it is how often the list is
+  redrawn and sorted. The keys are not in the on-screen help, which has no room.
+
+### Changed
+- The two scan lists jump around less. The signal shown for each access point or device is a running average (each new reading moves it
+  halfway), and a row changes place only after its average has moved 6 dB from the value it was last sorted by; rows with the same signal
+  keep the order of their addresses. The Bluetooth tools (find, tracker, crowding, tether) still use the live signal.
+- The Wi-Fi scan no longer pauses itself while a connection is up, and opening it again from the Bluetooth scan (or any other screen) always
+  starts it scanning. A scan can briefly interrupt a connection. `P` still pauses.
+- `B=BLUETOOTH SCAN` is now on the `P=PAUSE` line of the Wi-Fi scan, and `W=WIFI SCAN` on that line of the Bluetooth scan (they were in the
+  help lines below).
+
+### Fixed
+- A Wi-Fi scan that fails to start is tried once more half a second later before the screen pauses with `THE SCAN WOULD NOT START`.
+
+## [V1.11A]
+
 ### Added
 - `F5` saves a screenshot of the screen as `/netthing/SCREENS/SCRNxxxx.BMP` (24-bit BMP, 320 x 320) on any screen. It takes a few seconds and then shows
   `SAVED SCRNxxxx.BMP` for a moment at the left of the last text row, which is put back afterwards. The key is not in any on-screen help.

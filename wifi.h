@@ -26,7 +26,9 @@
 typedef struct {
     char     ssid[WIFI_SSID_MAX + 1];   /* empty for a hidden network */
     uint8_t  bssid[6];                  /* the access point's MAC address */
-    int16_t  rssi;                      /* signal strength in dBm (negative) */
+    int16_t  rssi;                      /* signal strength in dBm (negative), averaged over the scans */
+    int16_t  rssi_x8;                   /* the same average in eighths of a dB (kept by the driver) */
+    int16_t  sort_rssi;                 /* the signal the list is sorted by: it moves only in bigger steps */
     uint8_t  channel;                   /* 2.4 GHz channel number, 1 to 14 */
     uint8_t  security;                  /* WIFI_SEC_ bits */
 } wifi_ap_t;

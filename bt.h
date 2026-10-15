@@ -33,6 +33,9 @@ typedef struct {
     bool     classic;               /* found by a Classic inquiry */
     int8_t   rssi;                  /* the latest signal, dBm */
     int8_t   rssi_best;             /* the strongest heard */
+    int8_t   rssi_avg;              /* the signal averaged over the adverts, for the scan screen */
+    int8_t   rssi_sort;             /* the signal the scan screen sorts by: it moves only in bigger steps */
+    int16_t  rssi_x8;               /* the average in eighths of a dB (kept by the driver) */
     uint32_t sightings;             /* adverts or inquiry results heard */
     uint32_t first_ms, last_ms;     /* when it was first and last heard (the platform clock) */
     uint32_t class_of_device;       /* Classic */
