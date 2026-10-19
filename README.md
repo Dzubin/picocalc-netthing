@@ -522,7 +522,7 @@ quickly it does.
 
 ## Building
 
-You need the Pico SDK (2.3.0 here) **with its `cyw43-driver`, `lwip`, `mbedtls` and `btstack` folders
+You need the Pico SDK (2.3.1 here) **with its `cyw43-driver`, `lwip`, `mbedtls` and `btstack` folders
 filled in** (a plain zip download of the SDK has them empty), and a Pico 2 W:
 
 ```bash
@@ -600,21 +600,30 @@ they limit use to those products and to non-commercial use); this project is for
 The USB network adapter uses **TinyUSB** (by Ha Thach, MIT licence), which also comes with the SDK, and `usbnet_desc.c` is adapted from its
 `net_lwip_webserver` example (its licence text is at the top of that file); `rndis_reports.c` from its `lib/networking` is built in too.
 
-The vendored copy is unchanged except for these fixes, all in `drivers/`:
+The vendored copy is Blair Leduc's `picocalc-text-starter` as it was on 2026-10-18
+(commit `85a002e`, "Upgrade to SDK 2.3.1"), with **four small local fixes** that
+are not in his repository yet:
 
-1. `fat32.c`: `get_next_free_cluster()` advances its search hint past the cluster it just
-   handed out; without that, every later allocation re-scans the clusters already given out.
-2. `fat32.c`: `fat32_dir_read()` skips deleted entries before it looks at long-name parts, and
-   copes with the last part of a long name (a deleted long-name part used to be read as a live
-   one and wrote past the end of a stack buffer); `link_entry()` compares the 0xE5 deleted
-   marker as an unsigned byte.
-3. `sdcard.c`: the wait for a busy card is timed by the clock (0.5 s), every command except CMD0
-   waits for the card first (and is not sent if the card stays busy), and a write returns an
-   error if the card is still busy after it.
-4. `fat32.c`: `fat32_write()` no longer allocates a cluster twice when a write starts on a
-   cluster boundary (a lost cluster each time), and returns at once for a write of zero bytes.
-5. `lcd.c`: `lcd_putstr()` cuts a string off at the right edge of the display instead of
-   overrunning its one-row line buffer.
+1. In `picocalc-text-starter-main/drivers/fat32.c`, `fat32_write()` no longer walks
+   the cluster chain, allocating a cluster at a cluster-aligned end of file, before
+   it allocates the clusters the write needs. That walk could leave a cluster
+   unreachable (a leak). A write of zero bytes returns at once.
+2. In the same file, `fat32_dir_read()` copies the last part of a long file name of
+   248 to 255 characters as far as it fits; upstream drops that part.
+3. In `picocalc-text-starter-main/drivers/sdcard.c`, a command is not sent to a card
+   that is still busy after the 0.5 s wait.
+4. In `picocalc-text-starter-main/drivers/lcd.c`, `lcd_putstr()` cuts a string off at
+   the right edge of the display, because the line buffer holds exactly one row of
+   text.
 
-Fixes 2 and 3 were sent to the author as pull requests; 4 is prepared but not sent. Everything
-else is exactly as downloaded.
+Earlier versions of this copy carried other local changes, and those are now in
+the upstream code: the search-hint fix in `get_next_free_cluster()`
+([#30](https://github.com/BlairLeduc/picocalc-text-starter/pull/30)), the
+deleted-entry fixes in `fat32_dir_read()` and `link_entry()`
+([#32](https://github.com/BlairLeduc/picocalc-text-starter/pull/32)), the timed
+busy-card wait in `sdcard.c`
+([#33](https://github.com/BlairLeduc/picocalc-text-starter/pull/33)) and
+`lcd_unblit()` ([#31](https://github.com/BlairLeduc/picocalc-text-starter/pull/31)).
+`audio.pio` is exactly as downloaded: it now accepts 20 to 20000 Hz
+([#29](https://github.com/BlairLeduc/picocalc-text-starter/pull/29)), where it used
+to accept only 100 to 2000 Hz. Everything else is exactly as downloaded.
