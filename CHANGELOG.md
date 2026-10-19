@@ -10,8 +10,9 @@ the version here matches the `VERSION` define in `netthing_const.h`.
   `85a002e`) and moved to Pico SDK 2.3.1. The search-hint, deleted-entry and busy-card fixes this
   copy carried are in his code now; four small local fixes remain (README, Third-party). The audio
   driver in it now sounds 20 to 20000 Hz, where it used to be silent outside 100 to 2000 Hz. The
-  SDK's BTstack is a newer revision (`eb0bb8b`, was `075a078`): both builds compile, but the
-  Bluetooth scan and the tethering have not been tried with it on a PicoCalc.
+  SDK's BTstack is a newer revision (`eb0bb8b`, was `075a078`): both builds compile, and the
+  RP2350 build was tested on a PicoCalc: Thomas Dzubin tried every function, Bluetooth included,
+  and everything works. The RP2040 build is still untried.
 
 ### Changed
 - `Enter` on the Wi-Fi scan now shows the access point details, like `D`. The details screen says whether it can be connected to
